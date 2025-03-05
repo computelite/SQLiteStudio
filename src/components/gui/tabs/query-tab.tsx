@@ -17,13 +17,12 @@ import {
   TooltipContent,
   TooltipTrigger,
 } from "@/components/ui/tooltip";
-import { TAB_PREFIX_SAVED_QUERY } from "@/const";
 import { useDatabaseDriver } from "@/context/driver-provider";
 import { useSchema } from "@/context/schema-provider";
-import {
-  SavedDocData,
-  SavedDocInput,
-} from "@/drivers/saved-doc/saved-doc-driver";
+// import {
+//   SavedDocData,
+//   SavedDocInput,
+// } from "@/drivers/saved-doc/saved-doc-driver";
 import { escapeSqlValue, extractInputValue } from "@/drivers/sqlite/sql-helper";
 import { KEY_BINDING } from "@/lib/key-matcher";
 import {
@@ -31,9 +30,9 @@ import {
   MultipleQueryProgress,
   MultipleQueryResult,
 } from "@/lib/sql/multiple-query";
+import { tokenizeSql } from "@/lib/sql/tokenizer";
 import { sendAnalyticEvents } from "@/lib/tracking";
 import { cn } from "@/lib/utils";
-import { tokenizeSql } from "@outerbase/sdk-transform";
 import { CaretDown } from "@phosphor-icons/react";
 import { ReactCodeMirrorRef } from "@uiw/react-codemirror";
 import {
@@ -41,12 +40,12 @@ import {
   LucideMessageSquareWarning,
   LucidePlay,
 } from "lucide-react";
-import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { toast } from "sonner";
 import { format } from "sql-formatter";
 import { isExplainQueryPlan } from "../query-explanation";
 import QueryProgressLog from "../query-progress-log";
-import SaveDocButton from "../save-doc-button";
+// import SaveDocButton from "../save-doc-button";
 import {
   resolveToNearestStatement,
   splitSqlQuery,
@@ -66,8 +65,6 @@ interface QueryWindowProps {
 export default function QueryWindow({
   initialCode,
   initialName,
-  initialSavedKey,
-  initialNamespace,
 }: QueryWindowProps) {
   const { databaseDriver, docDriver } = useDatabaseDriver();
   const { refresh: refreshSchema, autoCompleteSchema } = useSchema();
@@ -84,11 +81,9 @@ export default function QueryWindow({
   const [name, setName] = useState(initialName);
   const { changeCurrentTab } = useTabsContext();
 
-  const [namespaceName, setNamespaceName] = useState(
-    initialNamespace ?? "Unsaved Query"
-  );
-  const [savedKey, setSavedKey] = useState<string | undefined>(initialSavedKey);
+  const namespaceName = "Unsaved Query";
   const [placeholders, setPlaceholders] = useState<Record<string, string>>({});
+  void docDriver;
 
   useEffect(() => {
     const timer = setTimeout(() => {
@@ -228,7 +223,7 @@ export default function QueryWindow({
             } else if (
               databaseDriver.getFlags().supportUseStatement &&
               log.sql.trim().substring(0, "use ".length).toLowerCase() ===
-                "use "
+              "use "
             ) {
               hasAlterSchema = true;
               break;
@@ -243,18 +238,18 @@ export default function QueryWindow({
     }
   };
 
-  const onSaveComplete = useCallback(
-    (doc: SavedDocData) => {
-      setNamespaceName(doc.namespace.name);
-      setSavedKey(doc.id);
-      changeCurrentTab({ identifier: TAB_PREFIX_SAVED_QUERY + doc.id });
-    },
-    [changeCurrentTab]
-  );
+  // const onSaveComplete = useCallback(
+  //   (doc: SavedDocData) => {
+  //     setNamespaceName(doc.namespace.name);
+  //     setSavedKey(doc.id);
+  //     changeCurrentTab({ identifier: TAB_PREFIX_SAVED_QUERY + doc.id });
+  //   },
+  //   [changeCurrentTab]
+  // );
 
-  const onPrepareSaveContent = useCallback((): SavedDocInput => {
-    return { content: code, name };
-  }, [code, name]);
+  // const onPrepareSaveContent = useCallback((): SavedDocInput => {
+  //   return { content: code, name };
+  // }, [code, name]);
 
   const windowTab = useMemo(() => {
     const queryTabs: WindowTabItemProps[] = [];
@@ -290,7 +285,7 @@ export default function QueryWindow({
         title: "Summary",
         icon: LucideMessageSquareWarning,
         component: (
-          <div className="h-full w-full overflow-x-hidden overflow-y-auto">
+          <div className="w-full h-full overflow-y-auto overflow-x-hidden">
             <QueryProgressLog progress={progress} />
           </div>
         ),
@@ -301,7 +296,7 @@ export default function QueryWindow({
       <WindowTabs
         key="main-window-tab"
         onSelectChange={setQueryTabIndex}
-        onTabsChange={() => {}}
+        onTabsChange={() => { }}
         hideCloseButton
         selected={queryTabIndex}
         tabs={queryTabs}
@@ -309,24 +304,16 @@ export default function QueryWindow({
     );
   }, [progress, queryTabIndex, data, databaseDriver]);
 
-  const onCursorChange = useCallback(
-    (_: unknown, line: number, col: number) => {
-      setLineNumber(line);
-      setColumnNumber(col);
-    },
-    []
-  );
-
   return (
     <ResizablePanelGroup direction="vertical">
       <ResizablePanel style={{ position: "relative" }}>
-        <div className="absolute top-0 right-0 bottom-0 left-0 flex flex-col">
-          <div className="flex border-b bg-neutral-50 py-3 pr-1 pl-3 dark:bg-neutral-950">
-            <div className="text-secondary-foreground flex shrink-0 items-center p-1 text-sm">
+        <div className="absolute left-0 right-0 top-0 bottom-0 flex flex-col">
+          <div className="border-b pl-3 pr-1 py-3 flex dark:bg-neutral-950 bg-neutral-50">
+            <div className="text-sm shrink-0 items-center flex text-secondary-foreground p-1">
               {namespaceName} /
             </div>
-            <div className="relative inline-block">
-              <span className="border-background inline-block min-w-[175px] border p-1 text-sm font-semibold opacity-0 outline-hidden">
+            <div className="inline-block relative">
+              <span className="inline-block text-sm p-1 outline-hidden font-semibold min-w-[175px] border border-background opacity-0">
                 &nbsp;{name}
               </span>
               <input
@@ -337,7 +324,7 @@ export default function QueryWindow({
                 }}
                 placeholder="Please name your query"
                 spellCheck="false"
-                className="focus:border-secondary-foreground absolute top-0 right-0 bottom-0 left-0 rounded bg-transparent p-1 text-sm font-semibold outline-hidden"
+                className="absolute top-0 right-0 left-0 bottom-0 text-sm p-1 outline-hidden font-semibold focus:border-secondary-foreground rounded bg-transparent"
                 value={name}
                 onChange={(e) => setName(e.currentTarget.value)}
               />
@@ -346,13 +333,13 @@ export default function QueryWindow({
             <div className="flex-1" />
 
             <div className="flex gap-2">
-              {docDriver && (
+              {/* {docDriver && (
                 <SaveDocButton
                   onComplete={onSaveComplete}
                   onPrepareContent={onPrepareSaveContent}
                   docId={savedKey}
                 />
-              )}
+              )} */}
 
               <div className="flex">
                 <button
@@ -362,7 +349,7 @@ export default function QueryWindow({
                     "rounded-r-none"
                   )}
                 >
-                  <LucidePlay className="mr-2 h-4 w-4" />
+                  <LucidePlay className="w-4 h-4 mr-2" />
                   Run
                 </button>
                 <DropdownMenu>
@@ -401,7 +388,10 @@ export default function QueryWindow({
               schema={autoCompleteSchema}
               fontSize={fontSize}
               onFontSizeChanged={setFontSize}
-              onCursorChange={onCursorChange}
+              onCursorChange={(_, line, col) => {
+                setLineNumber(line);
+                setColumnNumber(col);
+              }}
               onKeyDown={(e) => {
                 if (KEY_BINDING.run.match(e)) {
                   onRunClicked();
@@ -414,9 +404,9 @@ export default function QueryWindow({
               }}
             />
           </div>
-          <div className="shrink-0 grow-0">
-            <div className="flex gap-1 px-2 pb-1">
-              <div className="mr-2 flex grow items-center gap-2 pl-4 text-xs">
+          <div className="grow-0 shrink-0">
+            <div className="flex gap-1 pb-1 px-2">
+              <div className="grow items-center flex text-xs mr-2 gap-2 pl-4">
                 <div>Ln {lineNumber}</div>
                 <div>Col {columnNumber + 1}</div>
               </div>
@@ -442,7 +432,7 @@ export default function QueryWindow({
                 </TooltipTrigger>
                 <TooltipContent className="p-4">
                   <p className="mb-2">
-                    <span className="bg-secondary text-secondary-foreground inline-block rounded px-2 py-1">
+                    <span className="inline-block py-1 px-2 rounded bg-secondary text-secondary-foreground">
                       {KEY_BINDING.format.toString()}
                     </span>
                   </p>

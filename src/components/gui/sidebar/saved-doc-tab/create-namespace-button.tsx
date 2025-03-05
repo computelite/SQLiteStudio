@@ -8,11 +8,10 @@ import {
 } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
 import { useDatabaseDriver } from "@/context/driver-provider";
-import { SavedDocNamespace } from "@/drivers/saved-doc/saved-doc-driver";
 import { useCallback, useState } from "react";
 
 interface CreateNamespaceButtonProps {
-  onCreated: (v: SavedDocNamespace) => void;
+  onCreated: (v: any) => void;
   onClose: () => void;
 }
 

@@ -1,19 +1,21 @@
-import { InStatement } from "@libsql/client";
 import {
   DatabaseHeader,
   DatabaseResultSet,
   DatabaseRow,
 } from "@/drivers/base-driver";
-import { SqliteLikeBaseDriver } from "./sqlite-base-driver";
+import { InStatement } from "@libsql/client";
 import { BindParams, Database } from "sql.js";
+import { SqliteLikeBaseDriver } from "./sqlite-base-driver";
 
 export default class SqljsDriver extends SqliteLikeBaseDriver {
   protected db: Database;
   protected hasRowsChanged: boolean = false;
+  protected dbName?: string;
 
-  constructor(sqljs: Database) {
+  constructor(sqljs: Database, dbName?: string) {
     super();
     this.db = sqljs;
+    this.dbName = dbName;
   }
 
   reload(sqljs: Database) {
@@ -29,6 +31,20 @@ export default class SqljsDriver extends SqliteLikeBaseDriver {
     }
 
     return r;
+  }
+
+  async saveToOPFS() {
+    const root = await navigator.storage.getDirectory();
+    const dataFolder = await root.getDirectoryHandle('data', { create: true });
+    const projectFolder = await dataFolder.getDirectoryHandle('Default', { create: true });
+    const fileHandle = await projectFolder.getFileHandle(this.dbName ?? '', { create: false });
+    const writable = await fileHandle.createWritable();
+
+    const data = this.db.export();
+
+    await writable.write(data);
+    await writable.close();
+    return { fileHandle, writable };
   }
 
   async query(stmt: InStatement): Promise<DatabaseResultSet> {
@@ -75,17 +91,90 @@ export default class SqljsDriver extends SqliteLikeBaseDriver {
       this.hasRowsChanged = true;
     }
 
+    const rowsAffected = headers.length === 0 ? this.db.getRowsModified() : 0;
+    // let affectedSchema = false;
+    if (
+      sql.trim().substring(0, "select ".length).toLowerCase() !=
+      "select "
+    ) {
+      if (this.dbName) {
+        await this.saveToOPFS();
+      }
+    }
+    // else if (
+    //   sql.trim().substring(0, "drop ".length).toLowerCase() ===
+    //   "drop "
+    // ) {
+    //   affectedSchema = true;
+    // } else if (
+    //   sql.trim().substring(0, "begin ".length).toLowerCase() ===
+    //   "begin "
+    // ) {
+    //   affectedSchema = true;
+    // }
+
+    // if (affectedSchema || rowsAffected > 0) {
+    //   if (this.dbName) {
+    //     await this.saveToOPFS();
+    //   }
+    // }
+
     return {
       headers,
       rows,
       stat: {
-        rowsAffected: headers.length === 0 ? this.db.getRowsModified() : 0,
+        rowsAffected: rowsAffected,
         rowsRead: null,
         rowsWritten: null,
         queryDurationMs: endTime - startTime,
       },
     };
   }
+
+  // Manually Added  -- VISHAL
+  async executeScript(sqlScript: string): Promise<DatabaseResultSet[]> {
+    const startTime = Date.now();
+    const r: DatabaseResultSet[] = [];
+
+    try {
+      // Execute the entire script at once
+      const result = this.db.exec(sqlScript);
+
+      // Process the result and format it similarly to the query method
+      for (const res of result) {
+        const headers: DatabaseHeader[] = res.columns.map((colName) => ({
+          name: colName,
+          displayName: colName,
+          originalType: null,
+          type: undefined,
+        }));
+
+        const rows: DatabaseRow[] = res.values.map((r: any) => {
+          return headers.reduce((a, b, idx) => {
+            a[b.name] = r[idx];
+            return a;
+          }, {} as DatabaseRow);
+        });
+
+        r.push({
+          headers,
+          rows,
+          stat: {
+            rowsAffected: res.values.length,
+            rowsRead: res.values.length,
+            rowsWritten: null,
+            queryDurationMs: Date.now() - startTime,
+          },
+        });
+      }
+      await this.saveToOPFS();
+      return r;
+    } catch (error) {
+      console.error("Error executing SQL script:", error);
+      throw new Error("Failed to execute SQL script");
+    }
+  }
+
 
   resetChange() {
     this.hasRowsChanged = false;

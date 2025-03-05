@@ -1,49 +1,36 @@
-import { fillVariables, SupportedDialect } from "@outerbase/sdk-transform";
-import { useEffect, useMemo, useRef, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import Chart from "../chart";
 import { ChartValue } from "../chart/chart-type";
 import { useBoardContext } from "./board-provider";
-import BoardSqlErrorLog from "./board-sql-error-log";
 
 export default function BoardChart({ value }: { value: ChartValue }) {
   const [data, setData] = useState<Record<string, unknown>[] | null>(null);
   const loaderRef = useRef<HTMLDivElement>(null);
-  const { sources, lastRunTimestamp, resolvedFilterValue } = useBoardContext();
+  const { sources, lastRunTimestamp } = useBoardContext();
   const [loading, setLoading] = useState(false);
-  const [errorMessage, setErrorMessage] = useState<string | null>(null);
 
-  const sql = value ? ((value?.params?.layers ?? [])[0]?.sql ?? "") : "";
-  const sourceId = value?.source_id;
-
-  const finalSql = useMemo(() => {
-    return fillVariables(
-      sql,
-      resolvedFilterValue,
-      (sources?.sourceList().find((s) => s.id === sourceId)?.type ??
-        "sqlite") as unknown as SupportedDialect
-    );
-  }, [sql, sources, sourceId, resolvedFilterValue]);
+  const sql = value.params.layers[0].sql;
+  const sourceId = value.source_id;
 
   useEffect(() => {
-    if (!sources || !sourceId || !finalSql) {
+    if (!sources || !sourceId || !sql) {
       return;
     }
 
     setLoading(true);
-    setErrorMessage(null);
 
     sources
-      .query(sourceId, finalSql)
+      .query(sourceId, sql)
       .then((v) => {
-        setData(v.rows);
+        setData(v);
       })
       .catch((e) => {
-        setErrorMessage(e.toString());
+        console.error(e);
       })
       .finally(() => {
         setLoading(false);
       });
-  }, [sources, sourceId, finalSql, lastRunTimestamp, loaderRef]);
+  }, [sources, sourceId, sql, lastRunTimestamp, loaderRef]);
 
   useEffect(() => {
     if (loaderRef.current && loading) {
@@ -75,10 +62,9 @@ export default function BoardChart({ value }: { value: ChartValue }) {
           ></div>
         </div>
       )}
-      {data && !errorMessage && (
+      {data ? (
         <Chart className="h-full w-full" value={value} data={data} />
-      )}
-      {errorMessage && <BoardSqlErrorLog value={errorMessage} />}
+      ) : null}
     </>
   );
 }

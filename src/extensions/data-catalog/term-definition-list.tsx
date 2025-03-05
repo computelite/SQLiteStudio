@@ -18,9 +18,9 @@ export default function TermDefinitionList({ data, onSelect }: Props) {
             <div className="gap-5">
               <div className="text-lg font-bold">{item.name}</div>
               <div>{item.definition}</div>
-              {item.otherNames && (
+              {item.otherName && (
                 <div className="mt-3 text-sm">
-                  Also known as: {item.otherNames}
+                  Also known as: {item.otherName}
                 </div>
               )}
             </div>

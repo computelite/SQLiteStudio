@@ -6,7 +6,6 @@ import {
   createStandardExtensions,
 } from "@/core/standard-extension";
 import { BaseDriver } from "@/drivers/base-driver";
-import { CollaborationBaseDriver } from "@/drivers/collaboration-driver-base";
 import { SavedDocDriver } from "@/drivers/saved-doc/saved-doc-driver";
 import { useRouter } from "next/navigation";
 import { useCallback, useMemo } from "react";
@@ -17,7 +16,7 @@ interface MyStudioProps {
   color: string;
   driver: BaseDriver;
   expiredAt?: number;
-  collabarator?: CollaborationBaseDriver;
+  collabarator?: null;
   docDriver?: SavedDocDriver;
 }
 
@@ -32,7 +31,7 @@ function MyStudioInternal({
   const dialet = driver.getFlags().dialect;
 
   const goBack = useCallback(() => {
-    router.push("/");
+    router.push("/connect");
   }, [router]);
 
   const extensions = useMemo(() => {

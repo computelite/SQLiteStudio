@@ -1,98 +1,82 @@
-export interface DataCatalogTermDefinition {
+export interface VirtualJoinColumn {
   id: string;
-  name: string;
-  definition?: string;
-  otherNames?: string;
+  schema: string;
+  tableName: string;
+  columnName: string;
+  virtualKeyColumn: string;
+  virtualKeySchema: string;
+  virtualKeyTable: string;
+  flags?: {
+    isActive: boolean;
+    isVirtual: boolean;
+  };
 }
-
-export interface DataCatalogColumnInput {
+export interface DataCatalogModelColumnInput {
+  hideFromEzql: boolean;
   definition: string;
   samples: string[];
-  hide: boolean;
 }
 
-export interface DataCatalogColumn extends DataCatalogColumnInput {
-  schemaName: string;
-  tableName: string;
-  columnName: string;
+export interface DataCatalogModelColumn extends DataCatalogModelColumnInput {
+  name: string;
 }
 
-export interface DataCatalogTableRelationship {
+export interface DataCatalogModelTableInput {
+  definition?: string;
+  virtualJoin?: VirtualJoinColumn[];
+}
+export interface DataCatalogTermDefinition extends DataCatalogModelTableInput {
   id: string;
+  name: string;
+  otherName?: string;
+}
+export interface DataCatalogModelTable extends DataCatalogModelTableInput {
   schemaName: string;
   tableName: string;
-  columnName: string;
-  referenceTableName: string;
-  referenceColumnName: string;
-  hide: boolean;
-}
-
-export interface DataCatalogTableMetadata extends DataCatalogColumn {
-  alias?: string;
-}
-
-export interface DataCatalogTable {
-  schemaName: string;
-  tableName: string;
-  columns: DataCatalogColumn[];
-  relations: DataCatalogTableRelationship[];
-  metadata?: DataCatalogTableMetadata;
+  columns: Record<string, DataCatalogModelColumn>;
+  virtualJoin?: VirtualJoinColumn[];
 }
 
 export type DataCatalogSchemas = Record<
   string,
-  Record<string, DataCatalogTable>
+  Record<string, DataCatalogModelTable>
 >;
 
 export default abstract class DataCatalogDriver {
   abstract load(): Promise<{
-    definitions: DataCatalogTermDefinition[];
+    schemas: DataCatalogSchemas;
+    dataCatalog: DataCatalogTermDefinition[];
   }>;
 
   abstract updateColumn(
     schemaName: string,
     tableName: string,
     columnName: string,
-    data: DataCatalogColumnInput
-  ): Promise<DataCatalogColumn>;
+    data: DataCatalogModelColumnInput
+  ): Promise<DataCatalogModelColumn>;
 
   abstract updateTable(
     schemaName: string,
     tableName: string,
-    data: DataCatalogTableMetadata
-  ): Promise<DataCatalogTable | undefined>;
+    data: DataCatalogModelTableInput
+  ): Promise<DataCatalogModelTable>;
 
   abstract getColumn(
     schemaName: string,
     tableName: string,
     columnName: string
-  ): DataCatalogColumn | undefined;
+  ): DataCatalogModelColumn | undefined;
 
   abstract getTable(
     schemaName: string,
     tableName: string
-  ): DataCatalogTable | undefined;
-
-  abstract deleteVirtualColumn(id: string): Promise<boolean>;
-
-  abstract addVirtualJoin(
-    data: Omit<DataCatalogTableRelationship, "id">
-  ): Promise<DataCatalogTableRelationship>;
-
-  abstract updateVirtualJoin(
-    data: DataCatalogTableRelationship
-  ): Promise<boolean>;
-
-  abstract addTermDefinition(
-    data: Omit<DataCatalogTermDefinition, "id">
-  ): Promise<DataCatalogTermDefinition | undefined>;
+  ): DataCatalogModelTable | undefined;
 
   abstract updateTermDefinition(
     data: DataCatalogTermDefinition
   ): Promise<DataCatalogTermDefinition | undefined>;
 
-  abstract getTermDefinitions(): DataCatalogTermDefinition[];
-  abstract deleteTermDefinition(id: string): Promise<boolean>;
+  abstract getTermDefinitions(): DataCatalogTermDefinition[] | undefined;
 
-  abstract listen(cb: () => void): () => void;
+  abstract deleteTermDefinition(id: string): Promise<boolean>;
 }

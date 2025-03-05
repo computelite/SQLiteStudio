@@ -1,12 +1,12 @@
-import { syntaxTree } from "@codemirror/language";
-import { SyntaxNode } from "@lezer/common";
 import {
   Decoration,
   EditorState,
   EditorView,
-  Range,
   StateField,
+  Range,
 } from "@uiw/react-codemirror";
+import { syntaxTree } from "@codemirror/language";
+import { SyntaxNode } from "@lezer/common";
 
 const statementLineHighlight = Decoration.line({
   class: "cm-highlight-statement",
@@ -102,11 +102,10 @@ export function splitSqlQuery(
 }
 
 export function resolveToNearestStatement(
-  state: EditorState,
-  position?: number
+  state: EditorState
 ): { from: number; to: number } | null {
   // Breakdown and grouping the statement
-  const cursor = position ?? state.selection.main.from;
+  const cursor = state.selection.main.from;
   const statements = splitSqlQuery(state, false);
 
   if (statements.length === 0) return null;

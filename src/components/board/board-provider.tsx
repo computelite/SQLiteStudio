@@ -1,14 +1,5 @@
 import { BoardSourceDriver } from "@/drivers/board-source/base-source";
-import { IBoardStorageDriver } from "@/drivers/board-storage/base";
-import { noop } from "lodash";
-import {
-  createContext,
-  Dispatch,
-  PropsWithChildren,
-  SetStateAction,
-  useContext,
-} from "react";
-import { BoardEditorMode, DashboardProps } from ".";
+import { createContext, PropsWithChildren, useContext } from "react";
 
 interface BoardContextSettingProps {
   autoRefresh: string[];
@@ -16,26 +7,13 @@ interface BoardContextSettingProps {
 }
 
 interface BoardContextProps {
-  value?: DashboardProps;
-  onChange?: (value: DashboardProps) => void;
   sources?: BoardSourceDriver;
-  storage?: IBoardStorageDriver;
   setting?: BoardContextSettingProps;
   lastRunTimestamp: number;
-  setBoardMode: Dispatch<SetStateAction<BoardEditorMode>>;
-  boardMode: BoardEditorMode;
-  filterValue: Record<string, string>;
-  onFilterValueChange?: (value: Record<string, string>) => void;
-  resolvedFilterValue: Record<string, string>;
 }
 
 const BoardContext = createContext<BoardContextProps>({
   lastRunTimestamp: 0,
-  setBoardMode: noop,
-  boardMode: null,
-  filterValue: {},
-  onFilterValueChange: noop,
-  resolvedFilterValue: {},
 });
 
 export function useBoardContext() {
@@ -44,9 +22,13 @@ export function useBoardContext() {
 
 export function BoardProvider({
   children,
-  ...value
+  sources,
+  lastRunTimestamp,
+  setting,
 }: PropsWithChildren<BoardContextProps>) {
   return (
-    <BoardContext.Provider value={value}>{children}</BoardContext.Provider>
+    <BoardContext.Provider value={{ sources, setting, lastRunTimestamp }}>
+      {children}
+    </BoardContext.Provider>
   );
 }

@@ -21,8 +21,6 @@ import {
   DropdownMenuTrigger,
 } from "../ui/dropdown-menu";
 import BoardChart from "./board-chart";
-import { deleteChartDialog } from "./board-delete-dialog";
-import { useBoardContext } from "./board-provider";
 import "./board-style.css";
 
 export interface BoardChartLayout {
@@ -36,18 +34,18 @@ export interface BoardChartLayout {
 interface BoardProps {
   value: DashboardProps;
   onChange: (v: ReactGridLayout.Layout[]) => void;
+  editMode?: "ADD_CHART" | "REARRANGING_CHART" | null;
+  setEditMode?: (mode: "ADD_CHART" | "REARRANGING_CHART" | null) => void;
 }
 
 const ReactGridLayout = WidthProvider(RGL);
 
-export function BoardCanvas({ value, onChange }: BoardProps) {
-  const {
-    storage,
-    value: boardValue,
-    onChange: onBoardChange,
-    boardMode,
-    setBoardMode,
-  } = useBoardContext();
+export function BoardCanvas({
+  value,
+  onChange,
+  editMode,
+  setEditMode,
+}: BoardProps) {
   const sizes = [
     { w: 1, h: 1, name: "1", icon: <Square className="h-3 w-3" /> },
     {
@@ -65,35 +63,11 @@ export function BoardCanvas({ value, onChange }: BoardProps) {
     },
   ];
 
-  const onRemove = useCallback(
-    async (key?: string) => {
-      if (storage && onBoardChange && boardValue) {
-        const find = value.charts.find((f) => f.id === key);
-        const valueAfterDelete = await deleteChartDialog.show({
-          chartId: key ?? "",
-          chartName: find?.name ?? "",
-          storage,
-          value: boardValue,
-        });
-        if (valueAfterDelete) {
-          storage.save(valueAfterDelete).then();
-          onBoardChange(valueAfterDelete);
-        }
-      }
-    },
-    [boardValue, onBoardChange, storage, value.charts]
-  );
-
   const menus = [
     {
       name: "Edit chart",
       icon: <EditIcon className="h-4 w-4" />,
-      onclick: (key: string) => {
-        setBoardMode({
-          mode: "ADD_CHART",
-          chart: structuredClone(value.charts.find((f) => f.id === key)),
-        });
-      },
+      onclick: () => {},
     },
     {
       name: "Refresh data",
@@ -104,7 +78,7 @@ export function BoardCanvas({ value, onChange }: BoardProps) {
       name: "Rearrange layout",
       icon: <ImageUpscale className="h-4 w-4" />,
       onclick: () => {
-        setBoardMode({ mode: "REARRANGING_CHART" });
+        setEditMode && setEditMode("REARRANGING_CHART");
       },
     },
     {
@@ -115,7 +89,7 @@ export function BoardCanvas({ value, onChange }: BoardProps) {
     {
       name: "Delete chart",
       icon: <Trash2 className="h-4 w-4" />,
-      onclick: onRemove,
+      onclick: () => {},
     },
   ];
 
@@ -133,55 +107,38 @@ export function BoardCanvas({ value, onChange }: BoardProps) {
     return (
       <div
         key={_.i}
-        className="group relative flex items-center justify-center overflow-hidden rounded-xl bg-white shadow hover:bg-gray-50 dark:bg-neutral-900 dark:text-white"
+        className="group dark:bg-secondary relative flex items-center justify-center overflow-hidden rounded-md bg-white shadow hover:bg-gray-50 dark:text-white"
         data-grid={_}
       >
         <BoardChart
           value={value.charts.find((chart) => chart.id === _.i) as any}
         />
-        {boardMode?.mode === "REARRANGING_CHART" ? (
-          <>
-            <div className="absolute top-2 right-2 z-40 hidden gap-2 group-hover:flex">
-              {sizes.map((x, index) => {
-                return (
-                  <button
-                    className={cn(
-                      buttonVariants({ variant: "secondary", size: "icon" }),
-                      "cancelSelectorName h-6 w-6 p-0"
-                    )}
-                    onClick={() =>
-                      handleClickResize(x.w as number, x.h as number, i)
-                    }
-                    onMouseDown={(e) => e.stopPropagation()}
-                    onTouchStart={(e) => e.stopPropagation()}
-                    key={index}
-                  >
-                    {x.icon}
-                  </button>
-                );
-              })}
-            </div>
-            <div className="absolute top-2 left-2 z-40 hidden group-hover:block">
-              <button
-                className={cn(
-                  buttonVariants({ variant: "default", size: "icon" }),
-                  "cancelSelectorName h-6 w-6 cursor-pointer rounded-full"
-                )}
-                onClick={() => onRemove(_.i)}
-              >
-                <Trash2 className="h-4 w-4" />
-              </button>
-            </div>
-          </>
+        {editMode === "REARRANGING_CHART" ? (
+          <div className="absolute top-4 right-4 z-40 hidden gap-2 group-hover:flex">
+            {sizes.map((x, index) => {
+              return (
+                <button
+                  className={cn(
+                    buttonVariants({ variant: "secondary", size: "icon" }),
+                    "cancelSelectorName h-6 w-6 p-0"
+                  )}
+                  onClick={() =>
+                    handleClickResize(x.w as number, x.h as number, i)
+                  }
+                  onMouseDown={(e) => e.stopPropagation()}
+                  onTouchStart={(e) => e.stopPropagation()}
+                  key={index}
+                >
+                  {x.icon}
+                </button>
+              );
+            })}
+          </div>
         ) : (
           <div className="absolute top-4 right-4">
             <DropdownMenu key={_.i}>
               <DropdownMenuTrigger asChild>
-                <button
-                  className={buttonVariants({ size: "icon", variant: "ghost" })}
-                >
-                  <EllipsisVertical className="h-4 w-4" />
-                </button>
+                <EllipsisVertical className="h-4 w-4" />
               </DropdownMenuTrigger>
               <DropdownMenuContent>
                 {menus.map((menu) => {
@@ -189,7 +146,7 @@ export function BoardCanvas({ value, onChange }: BoardProps) {
                     <DropdownMenuItem
                       key={menu.name}
                       className="flex gap-2"
-                      onClick={() => menu.onclick(_.i)}
+                      onClick={menu.onclick}
                     >
                       {menu.icon}
                       {menu.name}
@@ -205,7 +162,7 @@ export function BoardCanvas({ value, onChange }: BoardProps) {
   });
 
   return (
-    <div className="bg-neutral-100 dark:bg-neutral-950">
+    <div>
       <ReactGridLayout
         cols={4}
         rowHeight={220}
@@ -213,8 +170,8 @@ export function BoardCanvas({ value, onChange }: BoardProps) {
         className="layout overflow-x-hidden"
         layout={value.layout}
         onLayoutChange={onChange}
-        isDraggable={boardMode?.mode === "REARRANGING_CHART"}
-        isResizable={boardMode?.mode === "REARRANGING_CHART"}
+        isDraggable={editMode === "REARRANGING_CHART"}
+        isResizable={editMode === "REARRANGING_CHART"}
         compactType={"vertical"}
       >
         {mapItem}

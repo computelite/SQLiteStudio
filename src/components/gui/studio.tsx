@@ -5,7 +5,6 @@ import { DriverProvider } from "@/context/driver-provider";
 import { StudioExtensionManager } from "@/core/extension-manager";
 import { BeforeQueryPipeline } from "@/core/query-pipeline";
 import type { BaseDriver } from "@/drivers/base-driver";
-import { CollaborationBaseDriver } from "@/drivers/collaboration-driver-base";
 import { SavedDocDriver } from "@/drivers/saved-doc/saved-doc-driver";
 import { useEffect, useMemo, useRef } from "react";
 import { CommonDialogProvider } from "../common-dialog";
@@ -14,7 +13,7 @@ import { FullEditorProvider } from "./providers/full-editor-provider";
 interface StudioProps {
   driver: BaseDriver;
   extensions?: StudioExtensionManager;
-  collaboration?: CollaborationBaseDriver;
+  collaboration?: null;
   docDriver?: SavedDocDriver;
   name: string;
   color: string;

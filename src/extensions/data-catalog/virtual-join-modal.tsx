@@ -1,7 +1,6 @@
-import { createDialog } from "@/components/create-dialog";
 import TableColumnCombobox from "@/components/gui/table-combobox/TableColumnCombobox";
 import TableCombobox from "@/components/gui/table-combobox/TableCombobox";
-import { Button } from "@/components/orbit/button";
+import { Button } from "@/components/ui/button";
 import {
   DialogDescription,
   DialogFooter,
@@ -9,85 +8,102 @@ import {
   DialogTitle,
 } from "@/components/ui/dialog";
 import { Label } from "@/components/ui/label";
-import { produce } from "immer";
-import { useCallback, useMemo, useState } from "react";
-import { toast } from "sonner";
-import DataCatalogDriver, { DataCatalogTableRelationship } from "./driver";
+import { LucideLoader } from "lucide-react";
+import { useState } from "react";
+import DataCatalogDriver, {
+  DataCatalogModelTableInput,
+  VirtualJoinColumn,
+} from "./driver";
 
-interface IRelationship extends Omit<DataCatalogTableRelationship, "id"> {
-  id?: string;
-}
-export const virtualJoinDialog = createDialog<{
+interface Props {
   driver: DataCatalogDriver;
-  relation: IRelationship;
-}>(({ driver, relation, close }) => {
+  schemaName: string;
+  tableName: string;
+  column?: VirtualJoinColumn;
+  onClose: () => void;
+}
+export default function VirtualJoinModal({
+  tableName,
+  schemaName,
+  driver,
+  column,
+  onClose,
+}: Props) {
   const [loading, setLoading] = useState(false);
-  const [value, setValue] = useState<IRelationship>(() =>
-    structuredClone(relation)
+  const [virtualKeySchema, setVirtualKeySchema] = useState<string | undefined>(
+    column?.virtualKeySchema
   );
 
-  const createUpdateVirtualJoin = useCallback(() => {
+  const [virtualKeyTable, setVirtualKeyTable] = useState<string | undefined>(
+    column?.virtualKeyTable
+  );
+  const [virtualKeyColumn, setVirtualKeyColumn] = useState<string | undefined>(
+    column?.virtualKeyColumn
+  );
+
+  const createVirtualJoin = () => {
     setLoading(true);
 
-    if (value?.id) {
-      // Update
-      driver
-        .updateVirtualJoin({ ...value, id: value.id })
-        .then(() => {
-          close(undefined);
-          toast.success("Virtaul join updated");
-        })
-        .catch()
-        .finally(() => setLoading(false));
-    } else {
-      // Create
-      driver
-        .addVirtualJoin(value)
-        .then(() => {
-          close(undefined);
-          toast.success("Virtaul join created");
-        })
-        .catch()
-        .finally(() => setLoading(false));
-    }
-  }, [driver, value, close]);
+    const modelTable = driver.getTable(schemaName, tableName);
+    const virtualJoin = [...(modelTable?.virtualJoin || [])];
 
-  const disabled = useMemo(
-    () =>
-      !value.referenceTableName ||
-      !value.referenceColumnName ||
-      !value.columnName,
-    [value]
-  );
+    const newVirtualJoin = {
+      id: column?.id || new Date().toISOString(),
+      schema: schemaName,
+      tableName: tableName,
+      columnName: virtualKeyColumn || "",
+      virtualKeyColumn: virtualKeyColumn || "",
+      virtualKeySchema: virtualKeySchema || "",
+      virtualKeyTable: virtualKeyTable || "",
+    };
+
+    if (column?.id) {
+      const index = virtualJoin.findIndex((col) => col.id === column.id);
+      if (index > -1) {
+        virtualJoin[index] = newVirtualJoin;
+      }
+    } else {
+      virtualJoin.push(newVirtualJoin);
+    }
+
+    const updatedData: DataCatalogModelTableInput = {
+      ...modelTable,
+      virtualJoin,
+    };
+
+    driver
+      ?.updateTable(schemaName, tableName, updatedData)
+      .then((r) => console.log("Updated successfully:", r))
+      .catch((error) => {
+        console.error("Error updating virtual join:", error);
+      })
+      .finally(() => {
+        setLoading(false);
+        onClose();
+      });
+  };
 
   return (
     <>
       <DialogHeader>
-        <DialogTitle>
-          {value.id ? "Edit" : "Add Relationship"} to {value.tableName}
-        </DialogTitle>
+        <DialogTitle>Add Relationship to {tableName}</DialogTitle>
+        <DialogDescription>
+          Use virtual relationships to connect fields that don&apos;t have a
+          direct foreign key link. For example, if two tables should be related
+          by email or title but don&apos;t have a formal foreign key, use these
+          virtual relationships to link them.
+        </DialogDescription>
       </DialogHeader>
-      <DialogDescription className="text-base">
-        Use virtual relationships to connect fields that don&apos;t have a
-        direct foreign key link. For example, if two tables should be related by
-        email or title but don&apos;t have a formal foreign key, use these
-        virtual relationships to link them.
-      </DialogDescription>
+
       <div className="mt-2 flex flex-col gap-4">
         <div className="flex flex-col gap-2">
           <Label>Column</Label>
         </div>
         <TableColumnCombobox
-          value={value.columnName}
-          schemaName={value.schemaName}
-          tableName={value.tableName}
-          onChange={(value) => {
-            setValue((prev) =>
-              produce(prev, (draft) => {
-                draft.columnName = value;
-              })
-            );
-          }}
+          value={virtualKeySchema}
+          schemaName={schemaName}
+          tableName={tableName}
+          onChange={setVirtualKeySchema}
         />
 
         <div className="flex flex-col gap-2">
@@ -95,16 +111,9 @@ export const virtualJoinDialog = createDialog<{
             <Label>Relationship Table</Label>
           </div>
           <TableCombobox
-            value={value.referenceTableName}
-            schemaName={value.schemaName}
-            onChange={(value) => {
-              setValue((prev) =>
-                produce(prev, (draft) => {
-                  draft.referenceTableName = value;
-                  draft.referenceColumnName = "";
-                })
-              );
-            }}
+            value={virtualKeyTable}
+            schemaName={schemaName}
+            onChange={setVirtualKeyTable}
           />
         </div>
 
@@ -113,31 +122,25 @@ export const virtualJoinDialog = createDialog<{
             <Label>Relationship Column</Label>
           </div>
           <TableColumnCombobox
-            value={value.referenceColumnName}
-            schemaName={value.schemaName}
-            tableName={value.referenceTableName}
-            onChange={(value) => {
-              setValue((prev) =>
-                produce(prev, (draft) => {
-                  draft.referenceColumnName = value;
-                })
-              );
-            }}
+            value={virtualKeyColumn}
+            schemaName={schemaName}
+            tableName={tableName}
+            onChange={setVirtualKeyColumn}
           />
         </div>
       </div>
 
       <DialogFooter>
         <Button
-          loading={loading}
-          variant="secondary"
-          disabled={disabled}
-          onClick={createUpdateVirtualJoin}
-          title={value.id ? "Edit Relationship" : "Create Relationship"}
-        />
-
+          variant="ghost"
+          disabled={!virtualKeyColumn || !virtualKeySchema || !virtualKeyTable}
+          onClick={createVirtualJoin}
+        >
+          {loading && <LucideLoader className="mr-1 h-4 w-4 animate-spin" />}
+          {column ? "Edit Relationship" : "Create Virtual Join"}
+        </Button>
         <div className="flex-1" />
       </DialogFooter>
     </>
   );
-});
+}

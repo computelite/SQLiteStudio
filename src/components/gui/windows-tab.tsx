@@ -1,19 +1,3 @@
-import { restrictToHorizontalAxis } from "@/lib/dnd-kit";
-import {
-  closestCenter,
-  DndContext,
-  type DragEndEvent,
-  KeyboardSensor,
-  PointerSensor,
-  useSensor,
-  useSensors,
-} from "@dnd-kit/core";
-import {
-  arrayMove,
-  horizontalListSortingStrategy,
-  SortableContext,
-  sortableKeyboardCoordinates,
-} from "@dnd-kit/sortable";
 import { type LucideIcon, LucidePlus } from "lucide-react";
 import {
   createContext,
@@ -24,12 +8,28 @@ import {
   useRef,
 } from "react";
 import {
+  DndContext,
+  closestCenter,
+  PointerSensor,
+  useSensor,
+  useSensors,
+  type DragEndEvent,
+  KeyboardSensor,
+} from "@dnd-kit/core";
+import {
+  arrayMove,
+  horizontalListSortingStrategy,
+  SortableContext,
+  sortableKeyboardCoordinates,
+} from "@dnd-kit/sortable";
+import { SortableTab } from "./sortable-tab";
+import {
   DropdownMenu,
   DropdownMenuContent,
   DropdownMenuItem,
   DropdownMenuTrigger,
 } from "../ui/dropdown-menu";
-import { SortableTab } from "./sortable-tab";
+import { restrictToHorizontalAxis } from "@/lib/dnd-kit";
 
 export interface WindowTabItemProps {
   component: JSX.Element;
@@ -194,10 +194,10 @@ export default function WindowTabs({
         onDragEnd={handleDragEnd}
         modifiers={[restrictToHorizontalAxis]}
       >
-        <div className="flex h-full w-full flex-col">
-          <div className="no-scrollbar shrink-0 grow-0 overflow-x-auto bg-neutral-100 dark:bg-neutral-900">
+        <div className="flex flex-col w-full h-full">
+          <div className="grow-0 shrink-0 bg-neutral-100 dark:bg-neutral-900 overflow-x-auto no-scrollbar">
             <div
-              className="window-tab-scrollbar flex h-[40px]"
+              className="flex h-[40px] window-tab-scrollbar"
               ref={tabContainerRef}
             >
               <SortableContext
@@ -239,12 +239,12 @@ export default function WindowTabs({
                 <div
                   ref={tabMenuRef}
                   style={{ zIndex: 50, position: "sticky" }}
-                  className={`right-0 flex h-[40px] items-center border-b bg-neutral-100 dark:bg-neutral-900`}
+                  className={`flex h-[40px] items-center border-b right-0 bg-neutral-100 dark:bg-neutral-900`}
                 >
                   <DropdownMenu modal={false}>
                     <DropdownMenuTrigger>
-                      <div className="ml-1.5 flex h-7 items-center justify-center gap-1 rounded-lg p-1.5 py-2 text-sm text-neutral-600 transition hover:bg-neutral-200 hover:text-black dark:text-neutral-400 dark:hover:bg-neutral-800 dark:hover:text-white">
-                        <LucidePlus className="h-4 w-4" /> New
+                      <div className="ml-1.5 text-xs flex h-7 items-center justify-center gap-1 rounded-lg p-1.5 py-2 text-neutral-600 transition hover:bg-neutral-200 hover:text-black dark:text-neutral-400 dark:hover:bg-neutral-800 dark:hover:text-white">
+                        <LucidePlus className="w-4 h-4" /> New
                       </div>
                     </DropdownMenuTrigger>
                     <DropdownMenuContent>
@@ -263,17 +263,17 @@ export default function WindowTabs({
                 </div>
               )}
 
-              <div className="flex h-[40px] flex-1 border-b"></div>
+              <div className="flex h-[40px] border-b flex-1"></div>
             </div>
           </div>
-          <div className="relative grow">
+          <div className="grow relative">
             {tabs.map((tab, tabIndex) => (
               <CurrentWindowTab.Provider
                 key={tab.key}
                 value={{ isActiveTab: tabIndex === selected }}
               >
                 <div
-                  className="absolute top-0 right-0 bottom-0 left-0"
+                  className="absolute left-0 right-0 top-0 bottom-0"
                   style={{
                     display: tabIndex === selected ? "inherit" : "none",
                   }}

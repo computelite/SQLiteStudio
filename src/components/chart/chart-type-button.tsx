@@ -1,11 +1,8 @@
-import { Button } from "../orbit/button";
-
 interface ChartTypeButtonProps {
   icon: React.ReactNode;
   isActive: boolean;
   onClick: () => void;
   tooltipText: string;
-  suggested: boolean;
 }
 
 export function ChartTypeButton({
@@ -13,20 +10,25 @@ export function ChartTypeButton({
   onClick,
   isActive,
   icon,
-  suggested,
 }: ChartTypeButtonProps) {
-  const className = suggested ? "border border-green-400 rounded-lg" : "";
   return (
-    <div className={className}>
-      <Button
-        variant={isActive ? "primary" : "secondary"}
-        size="lg"
-        shape="square"
-        onClick={onClick}
-        title={tooltipText}
-      >
-        {icon}
-      </Button>
-    </div>
+    <button
+      onClick={onClick}
+      title={tooltipText}
+      style={{
+        width: "50px",
+        height: "50px",
+        borderRadius: "8px",
+        display: "flex",
+        alignItems: "center",
+        justifyContent: "center",
+        backgroundColor: isActive ? "var(--accent)" : "var(--secondary)",
+        border: "none",
+        cursor: "pointer",
+        transition: "background-color 0.3s",
+      }}
+    >
+      {icon}
+    </button>
   );
 }

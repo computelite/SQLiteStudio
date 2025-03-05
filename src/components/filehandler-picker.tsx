@@ -6,27 +6,6 @@ import { useCommonDialog } from "./common-dialog";
 import { unsupportFileHandlerDialogContent } from "./screen-dropzone";
 import { Button, buttonVariants } from "./ui/button";
 
-/**
- * Cleanup file handler from indexdb database when
- * it is no longer needed.
- */
-async function cleanupFileHandler() {
-  const validHandlerIds = new Set(
-    (await localDb.connection.toCollection().toArray())
-      .map((c) => c.content.file_handler)
-      .filter(Boolean) as string[]
-  );
-
-  const fileHandlerList = (await localDb.file_handler.toArray()).map(
-    (r) => r.id
-  );
-
-  for (const id of fileHandlerList) {
-    if (!validHandlerIds.has(id)) {
-      await localDb.file_handler.delete(id);
-    }
-  }
-}
 
 async function openFileHandler() {
   const [newFileHandler] = await window.showOpenFilePicker({
@@ -80,12 +59,12 @@ export default function FileHandlerPicker({
 
   const onChangeFile = useCallback(() => {
     try {
-      cleanupFileHandler()
-        .then(openFileHandler)
-        .then(onChange)
-        .catch(() => {
-          showDialog(unsupportFileHandlerDialogContent);
-        });
+
+      openFileHandler
+      onChange
+      // .catch(() => {
+      //   showDialog(unsupportFileHandlerDialogContent);
+      // });
     } catch {
       showDialog(unsupportFileHandlerDialogContent);
     }
@@ -97,10 +76,10 @@ export default function FileHandlerPicker({
         onClick={onChangeFile}
         className={cn(
           buttonVariants({ variant: "outline" }),
-          "w-full cursor-pointer justify-start"
+          "w-full justify-start cursor-pointer"
         )}
       >
-        <LucideFile className="mr-2 h-4 w-4" />
+        <LucideFile className="w-4 h-4 mr-2" />
         {handler.name}
       </div>
     );
@@ -108,7 +87,7 @@ export default function FileHandlerPicker({
 
   return (
     <Button onClick={onChangeFile} variant={"outline"}>
-      <LucideFolderClosed className="mr-2 h-4 w-4" />
+      <LucideFolderClosed className="w-4 h-4 mr-2" />
       Open File
     </Button>
   );

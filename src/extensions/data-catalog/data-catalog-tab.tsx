@@ -1,8 +1,7 @@
 import { Toolbar, ToolbarFiller } from "@/components/gui/toolbar";
-import { Button } from "@/components/orbit/button";
-import { Dialog, DialogContent } from "@/components/ui/dialog";
+import { Button } from "@/components/ui/button";
 import { useConfig } from "@/context/config-provider";
-import { useEffect, useState } from "react";
+import { useState } from "react";
 import DataCatalogExtension from ".";
 import { DataCatalogEntryModal } from "./data-catalog-entry-modal";
 import { DataCatalogTermDefinition } from "./driver";
@@ -14,27 +13,25 @@ export default function DataCatalogTab() {
   const dataCatalogExtension =
     extensions.getExtension<DataCatalogExtension>("data-catalog");
   const driver = dataCatalogExtension?.driver;
-  const [definitions, setDefinitions] = useState<DataCatalogTermDefinition[]>(
-    []
-  );
+
   const [open, setOpen] = useState(false);
 
-  const [definition, setDefinition] = useState<DataCatalogTermDefinition>();
+  const [dataCatalog, setDataCatalog] = useState<DataCatalogTermDefinition[]>(
+    () => {
+      return driver?.getTermDefinitions() || [];
+    }
+  );
 
-  useEffect(() => {
-    if (!driver) return;
-    const getDataCatalog = () => {
-      setDefinitions(driver?.getTermDefinitions() || []);
-    };
+  const [selectedTermDefinition, setSeletedTermDefinition] =
+    useState<DataCatalogTermDefinition>();
 
-    getDataCatalog();
-
-    return driver.listen(getDataCatalog);
-  }, [driver]);
+  function onSuccess() {
+    setDataCatalog(driver?.getTermDefinitions() || []);
+  }
 
   function onOpenModal() {
     setOpen(true);
-    setDefinition(undefined);
+    setSeletedTermDefinition(undefined);
   }
 
   if (!driver) {
@@ -47,52 +44,45 @@ export default function DataCatalogTab() {
         <Toolbar>
           <div>Data Catalog</div>
           <ToolbarFiller />
-          <Button title="Add Entry" size="sm" onClick={onOpenModal} />
-
-          <Dialog open={open} onOpenChange={setOpen}>
-            <DialogContent className="sm:max-w-[425px]">
-              {open && (
-                <DataCatalogEntryModal
-                  onClose={() => setOpen(false)}
-                  driver={driver}
-                  definition={definition}
-                />
-              )}
-            </DialogContent>
-          </Dialog>
+          <Button size="sm" onClick={onOpenModal}>
+            Add Entry
+          </Button>
+          <DataCatalogEntryModal
+            selectedTermDefinition={selectedTermDefinition}
+            open={open}
+            onClose={setOpen}
+            driver={driver}
+            onSuccess={onSuccess}
+          />
         </Toolbar>
       </div>
       <div className="flex-1 gap-5 overflow-scroll p-10 pb-0">
         <div className="w-[450px]">
           <div className="text-3xl font-bold">
-            {definitions?.length === 0
+            {dataCatalog?.length === 0
               ? "Get started with Data Catalog"
               : "Definitions"}
           </div>
-          <div className="text-base">
-            {definitions?.length === 0
+          <div className="text-sm">
+            {dataCatalog?.length === 0
               ? " Provide explanations for terminology in your schema. EZQL will use this to make running queries more efficient and accurate."
               : "Defined terms to be used in your product."}
           </div>
         </div>
-        {definitions?.length === 0 ? (
+        {dataCatalog?.length === 0 ? (
           <EmptyTermDefinition />
         ) : (
           <TermDefinitionList
-            data={definitions}
+            data={dataCatalog}
             onSelect={(item) => {
-              setDefinition(item);
+              setSeletedTermDefinition(item);
               setOpen(true);
             }}
           />
         )}
-        <Button
-          title={
-            definitions?.length === 0 ? "Create your first entry" : "Add Entry"
-          }
-          className="mt-10 mb-10"
-          onClick={onOpenModal}
-        />
+        <Button className="mt-10 mb-10" onClick={onOpenModal}>
+          {dataCatalog?.length === 0 ? "Create your first entry" : "Add Entry"}
+        </Button>
       </div>
     </div>
   );

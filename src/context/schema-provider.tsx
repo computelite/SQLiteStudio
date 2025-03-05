@@ -10,7 +10,6 @@ import {
   useState,
 } from "react";
 import { useAutoComplete } from "./auto-complete-provider";
-import { useConfig } from "./config-provider";
 import { useDatabaseDriver } from "./driver-provider";
 
 type AutoCompletionSchema = Record<string, Record<string, string[]> | string[]>;
@@ -47,7 +46,7 @@ function generateAutoCompleteFromSchemaItems(
     );
 }
 
-export function generateAutoComplete(
+function generateAutoComplete(
   currentSchemaName: string,
   schema: DatabaseSchemas
 ) {
@@ -69,7 +68,6 @@ export function SchemaProvider({ children }: Readonly<PropsWithChildren>) {
   const [error, setError] = useState<string>();
   const [loading, setLoading] = useState(true);
   const { databaseDriver } = useDatabaseDriver();
-  const { extensions } = useConfig();
 
   const [schema, setSchema] = useState<DatabaseSchemas>({});
   const [currentSchema, setCurrentSchema] = useState<DatabaseSchemaItem[]>([]);
@@ -120,18 +118,6 @@ export function SchemaProvider({ children }: Readonly<PropsWithChildren>) {
       setCurrentSchema(schema[currentSchemaName]);
     }
   }, [currentSchemaName, schema, setCurrentSchema]);
-
-  /**
-   * Triggered when re-fetching the database schema.
-   * This is particularly useful for Outerbase Cloud,
-   * which needs to update its data catalog to provide
-   * the schema to the AI.
-   */
-  useEffect(() => {
-    if (schema && Object.entries(schema).length > 0) {
-      extensions.triggerAfterFetchSchemaCallback(schema);
-    }
-  }, [schema, extensions]);
 
   useEffect(() => {
     const sortedTableList = [...currentSchema];

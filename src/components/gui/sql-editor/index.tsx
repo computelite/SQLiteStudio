@@ -1,4 +1,3 @@
-"use client";
 import {
   acceptCompletion,
   completionStatus,
@@ -16,13 +15,8 @@ import CodeMirror, {
   Extension,
   ReactCodeMirrorRef,
 } from "@uiw/react-codemirror";
-import { forwardRef, KeyboardEventHandler, useEffect, useMemo } from "react";
+import { forwardRef, KeyboardEventHandler, useMemo } from "react";
 
-import {
-  CodeMirrorPromptPlugin,
-  PromptCallback,
-} from "@/components/editor/prompt-plugin";
-import { createVariableHighlightPlugin } from "@/components/editor/sql-editor/variable-highlight-plugin";
 import { SupportedDialect } from "@/drivers/base-driver";
 import sqliteFunctionList from "@/drivers/sqlite/function-tooltip.json";
 import { sqliteDialect } from "@/drivers/sqlite/sqlite-dialect";
@@ -36,19 +30,6 @@ import SqlStatementHighlightPlugin from "./statement-highlight";
 import useCodeEditorTheme from "./use-editor-theme";
 
 interface SqlEditorProps {
-  highlightVariable?: boolean;
-
-  /**
-   * Comma seprated variable name list
-   */
-  variableList?: string;
-
-  /**
-   * Prompt Support
-   */
-  enablePrompt?: boolean;
-  onPrompt?: PromptCallback;
-
   value: string;
   dialect: SupportedDialect;
   readOnly?: boolean;
@@ -76,11 +57,6 @@ const SqlEditor = forwardRef<ReactCodeMirrorRef, SqlEditorProps>(
       readOnly,
       fontSize,
       onFontSizeChanged,
-      variableList,
-      highlightVariable,
-
-      enablePrompt,
-      onPrompt,
     }: SqlEditorProps,
     ref
   ) {
@@ -92,16 +68,6 @@ const SqlEditor = forwardRef<ReactCodeMirrorRef, SqlEditorProps>(
       }
       return createSQLTableNameHighlightPlugin([]);
     }, [schema]);
-
-    const promptPlugin = useMemo(() => {
-      return enablePrompt ? new CodeMirrorPromptPlugin() : null;
-    }, [enablePrompt]);
-
-    useEffect(() => {
-      if (promptPlugin && onPrompt) {
-        promptPlugin.handleSuggestion(onPrompt);
-      }
-    }, [promptPlugin, onPrompt]);
 
     const keyExtensions = useMemo(() => {
       return keymap.of([
@@ -198,12 +164,6 @@ const SqlEditor = forwardRef<ReactCodeMirrorRef, SqlEditorProps>(
         }),
         keyExtensions,
         indentUnit.of("  "),
-        highlightVariable
-          ? createVariableHighlightPlugin({
-              variables: variableList ?? "",
-              language: sqlDialect,
-            })
-          : undefined,
         sqlDialect,
         tooltipExtension,
         tableNameHighlightPlugin,
@@ -215,7 +175,6 @@ const SqlEditor = forwardRef<ReactCodeMirrorRef, SqlEditorProps>(
           const columnNumber = pos - line.from;
           if (onCursorChange) onCursorChange(pos, lineNumber, columnNumber);
         }),
-        promptPlugin ? promptPlugin.getExtensions() : undefined,
       ].filter(Boolean) as Extension[];
     }, [
       dialect,
@@ -223,15 +182,12 @@ const SqlEditor = forwardRef<ReactCodeMirrorRef, SqlEditorProps>(
       keyExtensions,
       schema,
       tableNameHighlightPlugin,
-      variableList,
-      highlightVariable,
-      promptPlugin,
     ]);
 
     return (
       <CodeMirror
         ref={ref}
-        autoFocus={!readOnly}
+        autoFocus
         readOnly={readOnly}
         onKeyDown={onKeyDown}
         basicSetup={{

@@ -4,7 +4,6 @@ import {
   PostgreIcon,
   RqliteIcon,
   SQLiteIcon,
-  TursoIcon,
 } from "../icons/outerbase-icon";
 import { CloudflareIcon, StarbaseIcon, ValTownIcon } from "./icon";
 import {
@@ -16,7 +15,6 @@ import {
 
 export function getDatabaseFriendlyName(type: string) {
   if (type === "sqlite") return "SQLite";
-  if (type === "sqlite-filehandler") return "SQLite";
   if (type === "mysql") return "MySQL";
   if (type === "postgres") return "PostgreSQL";
   if (type === "rqlite") return "rqlite";
@@ -27,7 +25,6 @@ export function getDatabaseFriendlyName(type: string) {
   if (type === "motherduck") return "Motherduck";
   if (type === "duckdb") return "DuckDB";
   if (type === "cloudflare" || type === "cloudflare-d1") return "Cloudflare";
-  if (type === "cloudflare-wae") return "Worker Analytics Engine";
   if (type === "starbasedb") return "StarbaseDB";
   if (type === "starbase") return "StarbaseDB";
   if (type === "bigquery") return "BigQuery";
@@ -40,17 +37,11 @@ export function getDatabaseFriendlyName(type: string) {
 export function getDatabaseIcon(type: string) {
   if (type === "mysql") return MySQLIcon;
   if (type === "postgres") return PostgreIcon;
-  if (
-    type === "cloudflare" ||
-    type === "cloudflare-d1" ||
-    type === "cloudflare-wae"
-  )
-    return CloudflareIcon;
+  if (type === "cloudflare" || type === "cloudflare-d1") return CloudflareIcon;
   if (type === "valtown") return ValTownIcon;
   if (type === "starbasedb" || type === "starbase") return StarbaseIcon;
-  if (type === "libsql" || type === "turso") return TursoIcon;
+  if (type === "libsql" || type === "turso") return SQLiteIcon;
   if (type === "rqlite") return RqliteIcon;
-  if (type === "sqlite") return SQLiteIcon;
   if (type === "board") return ChartBar;
 
   return Database;
@@ -63,11 +54,4 @@ export function getDatabaseVisual(type: string) {
   if (type === "board") return BoardVisual;
 
   return GeneralVisual;
-}
-
-export function getDatabaseColor(type: string) {
-  if (type === "cloudflare" || type === "cloudflare-d1") return "yellow";
-  if (type === "starbasedb" || type === "starbase") return "rainbow";
-  if (type === "libsql" || type === "turso") return "green";
-  return "default";
 }

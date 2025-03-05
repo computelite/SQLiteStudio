@@ -7,13 +7,7 @@ import {
   ScatterSeriesOption,
   SeriesOption,
 } from "echarts";
-import {
-  ChartData,
-  ChartValue,
-  DEFAULT_THEME,
-  ThemeColors,
-  THEMES,
-} from "./chart-type";
+import { ChartData, ChartValue, ThemeColors, THEMES } from "./chart-type";
 
 export default class EchartOptionsBuilder {
   private chartValue: ChartValue;
@@ -22,6 +16,7 @@ export default class EchartOptionsBuilder {
   private columns: string[] = [];
   public chartHeight: number = 0;
   public chartWidth: number = 0;
+  public colorTheme: ThemeColors = "mercury";
 
   constructor(value: ChartValue, data: ChartData[]) {
     this.chartValue = value;
@@ -32,10 +27,6 @@ export default class EchartOptionsBuilder {
     this.chartValue = value;
   }
 
-  setChartData(data: ChartData[]) {
-    this.chartData = data;
-  }
-
   getChartType() {
     return this.chartValue.type;
   }
@@ -44,44 +35,16 @@ export default class EchartOptionsBuilder {
     this.theme = theme as "dark" | "light";
   }
 
-  private getColorRange(theme?: ThemeColors, numColors?: number): string[] {
-    if (theme) {
-      const themeColor = THEMES[theme].colors?.[this.theme ?? "light"];
-      const colors = generateGradientColors(
-        themeColor[0],
-        themeColor[1],
-        numColors || 20
-      );
-      return colors;
+  private getColorValues(): string[] {
+    const DEFAULT_THEME = "mercury";
+    const colorTheme = this.colorTheme ?? DEFAULT_THEME;
+    const values = THEMES[colorTheme];
+
+    if (!values) {
+      throw new Error(`Theme "${colorTheme}" does not exist`);
     }
 
-    const axisKeyColors = this.getAxisKeyColors();
-    const keys = this.chartValue.params.options?.yAxisKeys ?? this.columns;
-    return keys.map((key) => axisKeyColors[key] as string);
-  }
-
-  private getAxisKeyColors(): Record<string, string> {
-    if (this.chartValue.params.options?.yAxisKeyColors) {
-      return this.chartValue.params.options.yAxisKeyColors;
-    } else {
-      // return default colors
-      const selectedTheme = (this.chartValue.params.options?.theme ??
-        DEFAULT_THEME) as ThemeColors;
-      const appTheme: "light" | "dark" = this.theme;
-      const themeColor = THEMES[selectedTheme].colors?.[appTheme ?? "light"];
-      const colors = generateGradientColors(
-        themeColor[0],
-        themeColor[1],
-        this.columns.length
-      );
-      return this.columns.reduce(
-        (acc, col, i) => {
-          acc[col] = colors[i];
-          return acc;
-        },
-        {} as Record<string, string>
-      );
-    }
+    return values.colors[this.theme]; // return light or dark values
   }
 
   private getTextColor(): string {
@@ -92,18 +55,15 @@ export default class EchartOptionsBuilder {
   }
 
   getChartOptions(): EChartsOption {
+    const colorValues = this.getColorValues();
+
     const formattedSource = this.chartData;
     this.columns = [];
     if (this.chartValue.params.options?.xAxisKey) {
       this.columns.push(this.chartValue.params.options.xAxisKey);
     }
-    if (
-      this.chartValue.params.options?.yAxisKeys &&
-      this.chartValue.params.options.yAxisKeys.length > 0
-    ) {
-      for (const key of this.chartValue.params.options.yAxisKeys) {
-        this.columns.push(key);
-      }
+    for (const key of this.chartValue.params.options.yAxisKeys) {
+      this.columns.push(key);
     }
 
     const isTall = this.chartHeight > 150;
@@ -127,14 +87,16 @@ export default class EchartOptionsBuilder {
           shape: "polygon",
           indicator: this.columns.map((name) => ({ name })),
         },
-        series: this.columns.map((col) => ({
+        series: this.columns.map((col, index) => ({
           type: "radar",
           data: [
             {
               value: formattedSource.map((item) => Number(item[col])), // throws away precision of bigint?!
               name: col,
               itemStyle: {
-                color: this.getAxisKeyColors()[col],
+                color:
+                  this.chartValue.params.options.yAxisKeyColors?.[col] ||
+                  colorValues[index % colorValues.length],
               },
             },
           ],
@@ -146,20 +108,13 @@ export default class EchartOptionsBuilder {
       };
     }
 
-    let xAxisLabel =
-      this.chartValue.params.options.xAxisLabel ??
-      (this.chartValue.params.options.xAxisKey || "");
+    const xAxisLabel = !this.chartValue.params.options.xAxisLabel
+      ? this.chartValue.params.options.xAxisKey
+      : this.chartValue.params.options.xAxisLabel;
 
-    xAxisLabel = this.chartValue.params.options.xAxisLabelHidden
-      ? ""
-      : xAxisLabel;
-
-    let yaxisLabel =
-      this.chartValue.params.options.yAxisLabel ??
-      (this.chartValue.params.options.yAxisKeys &&
-      this.chartValue.params.options.yAxisKeys?.length > 0
-        ? this.chartValue.params.options.yAxisKeys[0]
-        : "");
+    let yaxisLabel = !this.chartValue.params.options.yAxisLabel
+      ? this.chartValue.params.options.yAxisKeys[0]
+      : this.chartValue.params.options.yAxisLabel;
 
     yaxisLabel = this.chartValue.params.options.yAxisLabelHidden
       ? ""
@@ -193,7 +148,7 @@ export default class EchartOptionsBuilder {
         containLabel: true,
       },
       xAxis: {
-        show: true,
+        show: !this.chartValue.params.options.xAxisLabelHidden,
         type:
           this.chartValue.type === "bar"
             ? "value"
@@ -350,11 +305,7 @@ export default class EchartOptionsBuilder {
             name: item[this.columns[0]] as string,
             value: item[this.columns[1]] as number,
           })),
-          color: this.getColorRange(
-            (this.chartValue.params.options?.theme ??
-              DEFAULT_THEME) as ThemeColors,
-            this.chartData.length
-          ),
+          color: this.getColorValues(),
         });
         break;
       case "pie":
@@ -375,14 +326,10 @@ export default class EchartOptionsBuilder {
           label: {
             show: this.chartValue.params?.options?.xAxisLabelHidden !== true,
             formatter: "{b}: {c} ({d}%)",
-            color: this.getTextColor(),
+            color: this.theme === "dark" ? "#fff" : "#000", // Set label text color to white
             textBorderColor: "transparent", // Remove text border
           },
-          color: this.getColorRange(
-            (this.chartValue.params.options?.theme ??
-              DEFAULT_THEME) as ThemeColors,
-            this.chartData.length
-          ),
+          color: this.getColorValues(),
           tooltip: {
             trigger: "item",
             borderColor: this.theme === "dark" ? "#FFFFFF08" : "#00000010", // fix issue where 'item' tooltips were a different color than the rest (maybe it matched the series color)
@@ -410,7 +357,7 @@ export default class EchartOptionsBuilder {
             ? { x: col, y: this.columns[0] } // For bar charts
             : { x: this.columns[0], y: col }, // For other chart types
         itemStyle: {
-          color: this.getAxisKeyColors()[col],
+          color: this.chartValue.params.options.yAxisKeyColors?.[col], // does NOT impact pie charts
         },
         symbol: "circle",
         ...additionalOptions,
@@ -437,7 +384,7 @@ export default class EchartOptionsBuilder {
   }
 }
 
-export function isDate(dateString: string): boolean {
+function isDate(dateString: string): boolean {
   if (!isNaN(Number(dateString))) {
     // this is number
     return false;
@@ -445,40 +392,4 @@ export function isDate(dateString: string): boolean {
     const date = new Date(dateString);
     return !isNaN(date.getTime());
   }
-}
-
-function interpolateColor(
-  color1: string,
-  color2: string,
-  factor: number
-): string {
-  const c1 = parseInt(color1.slice(1), 16);
-  const c2 = parseInt(color2.slice(1), 16);
-
-  const r1 = (c1 >> 16) & 0xff;
-  const g1 = (c1 >> 8) & 0xff;
-  const b1 = c1 & 0xff;
-
-  const r2 = (c2 >> 16) & 0xff;
-  const g2 = (c2 >> 8) & 0xff;
-  const b2 = c2 & 0xff;
-
-  const r = Math.round(r1 + factor * (r2 - r1));
-  const g = Math.round(g1 + factor * (g2 - g1));
-  const b = Math.round(b1 + factor * (b2 - b1));
-
-  return `#${((1 << 24) + (r << 16) + (g << 8) + b).toString(16).slice(1)}`;
-}
-
-export function generateGradientColors(
-  startColor: string,
-  endColor: string,
-  numColors: number
-): string[] {
-  const colors = [];
-  for (let i = 0; i < numColors; i++) {
-    const factor = i / (numColors - 1);
-    colors.push(interpolateColor(startColor, endColor, factor));
-  }
-  return colors;
 }

@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { ApiError } from "./api-error";
-import { HttpStatus } from "@/constants/http-status";
+// import { HttpStatus } from "@/constants/http-status";
 
 type WithErrorHandler<T = unknown> = (props: {
   req: NextRequest;
@@ -31,7 +31,7 @@ export default function withErrorHandler<ParamsType = unknown>(
           detailedMessage: e instanceof Error ? e.message : "Unknown Error",
         }),
         {
-          status: HttpStatus.INTERNAL_SERVER_ERROR,
+          status: 500,
           headers: {
             "Content-Type": "application/json",
           },

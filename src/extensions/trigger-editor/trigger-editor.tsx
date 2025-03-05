@@ -1,6 +1,9 @@
-import SchemaNameSelect from "@/components/gui/schema-editor/schema-name-select";
-import SqlEditor from "@/components/gui/sql-editor";
-import TableCombobox from "@/components/gui/table-combobox/TableCombobox";
+import { useDatabaseDriver } from "@/context/driver-provider";
+import {
+  DatabaseTriggerSchema,
+  TriggerOperation,
+  TriggerWhen,
+} from "@/drivers/base-driver";
 import { Input } from "@/components/ui/input";
 import {
   Select,
@@ -9,15 +12,12 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import { useDatabaseDriver } from "@/context/driver-provider";
-import { useSchema } from "@/context/schema-provider";
-import {
-  DatabaseTriggerSchema,
-  TriggerOperation,
-  TriggerWhen,
-} from "@/drivers/base-driver";
 import { produce } from "immer";
+import { useSchema } from "@/context/schema-provider";
 import { useMemo } from "react";
+import SchemaNameSelect from "@/components/gui/schema-editor/schema-name-select";
+import TableCombobox from "@/components/gui/table-combobox/TableCombobox";
+import SqlEditor from "@/components/gui/sql-editor";
 
 export interface TriggerEditorProps {
   onChange: (value: DatabaseTriggerSchema) => void;
@@ -49,7 +49,7 @@ export default function TriggerEditor({ value, onChange }: TriggerEditorProps) {
 
   return (
     <>
-      <div className="flex flex-row gap-2 px-4 py-2">
+      <div className="px-4 py-2 flex flex-row gap-2">
         <Input
           value={value.name}
           placeholder="Trigger Name"
@@ -62,7 +62,7 @@ export default function TriggerEditor({ value, onChange }: TriggerEditorProps) {
           }
         />
       </div>
-      <div className="flex flex-col gap-2 px-4 py-2">
+      <div className="px-4 py-2 flex flex-col gap-2">
         <div className="flex gap-2">
           <div className="w-[200px]">
             <Select
@@ -138,7 +138,7 @@ export default function TriggerEditor({ value, onChange }: TriggerEditorProps) {
 
       <div className="grow overflow-hidden">
         <div className="h-full">
-          <div className="mx-4 my-2 text-sm">
+          <div className="text-xs my-2 mx-4">
             Trigger statement: (eg: &quot;SET NEW.columnA =
             TRIM(OLD.columnA)&quot;)
           </div>

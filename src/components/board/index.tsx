@@ -1,13 +1,10 @@
 import { BoardSourceDriver } from "@/drivers/board-source/base-source";
-import { IBoardStorageDriver } from "@/drivers/board-storage/base";
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useState } from "react";
 import { ChartValue } from "../chart/chart-type";
 import { BoardCanvas } from "./board-canvas";
-import BoardChartEditor from "./board-chart-editor";
 import { BoardFilter } from "./board-filter";
 import { BoardFilterProps } from "./board-filter-dialog";
 import { BoardProvider } from "./board-provider";
-import { BoardTool } from "./board-tool/board-tool";
 
 export interface DashboardProps {
   charts: ChartValue[];
@@ -18,17 +15,9 @@ export interface DashboardProps {
   };
 }
 
-export type BoardEditorMode = {
-  mode: "ADD_CHART" | "REARRANGING_CHART";
-  chart?: ChartValue;
-} | null;
-
 interface Props {
   value: DashboardProps;
-  filterValue: Record<string, string>;
-  onFilterValueChange?: (value: Record<string, string>) => void;
   sources?: BoardSourceDriver;
-  storage?: IBoardStorageDriver;
   interval: number;
   onChange: (value: DashboardProps) => void;
   onChangeInterval: (v: number) => void;
@@ -37,14 +26,13 @@ interface Props {
 export default function Board({
   value,
   sources,
-  storage,
   interval,
   onChange,
   onChangeInterval,
-  filterValue,
-  onFilterValueChange,
 }: Props) {
-  const [editMode, setEditMode] = useState<BoardEditorMode>(null);
+  const [editMode, setEditMode] = useState<
+    "ADD_CHART" | "REARRANGING_CHART" | null
+  >(null);
 
   const autoRefresh = [
     "5s",
@@ -75,43 +63,31 @@ export default function Board({
     };
   }, [interval]);
 
-  const resolvedFilterValue = useMemo(() => {
-    const tmp = structuredClone(filterValue);
-
-    value.data.filters.forEach((f) => {
-      if (!tmp[f.name]) {
-        tmp[f.name] = f.defaultValue;
-      }
-    });
-
-    return tmp;
-  }, [value, filterValue]);
-
   return (
     <BoardProvider
-      filterValue={filterValue}
       sources={sources}
-      storage={storage}
-      onChange={onChange}
       lastRunTimestamp={lastRunTimestamp}
       setting={{ autoRefresh, name: value.name }}
-      setBoardMode={setEditMode}
-      boardMode={editMode}
-      value={value}
-      resolvedFilterValue={resolvedFilterValue}
-      onFilterValueChange={onFilterValueChange}
     >
-      <div className="relative h-auto min-h-screen w-full">
+      <div>
         <BoardFilter
-          value={value}
-          onChange={onChange}
+          filters={value.data.filters}
+          onFilters={(v) =>
+            onChange({
+              ...value,
+              data: {
+                ...value.data,
+                filters: v,
+              },
+            })
+          }
+          editMode={editMode}
+          setEditMode={setEditMode}
+          name={value.name}
           interval={interval}
-          onChangeInterval={onChangeInterval}
+          setInterval={onChangeInterval}
           onRefresh={() => {
             setLastRunTimestamp(Date.now());
-          }}
-          onCancel={() => {
-            setEditMode(null);
           }}
         />
         <BoardCanvas
@@ -122,32 +98,10 @@ export default function Board({
               layout: v,
             });
           }}
+          editMode={editMode}
+          setEditMode={setEditMode}
         />
-        {editMode?.mode === "ADD_CHART" && (
-          <>
-            <div className="fixed top-0 left-0 z-50 h-full w-full backdrop-blur-sm"></div>
-            <div className="bg-background fixed top-[5%] right-[5%] bottom-[5%] left-[5%] z-50 flex overflow-hidden rounded-lg border-2">
-              <BoardChartEditor
-                onChange={onChange}
-                initialValue={editMode?.chart}
-              />
-            </div>
-          </>
-        )}
-
-        {editMode?.mode === "ADD_CHART" && (
-          <>
-            <div className="fixed top-0 left-0 z-50 h-full w-full backdrop-blur-sm"></div>
-            <div className="bg-background fixed top-[5%] right-[5%] bottom-[5%] left-[5%] z-50 flex overflow-hidden rounded-lg border-2">
-              <BoardChartEditor
-                onChange={onChange}
-                initialValue={editMode?.chart}
-              />
-            </div>
-          </>
-        )}
       </div>
-      <BoardTool />
     </BoardProvider>
   );
 }

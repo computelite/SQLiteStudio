@@ -56,7 +56,6 @@ interface MDXCodeBlockProps {
 
 async function CodeBlock(props: MDXCodeBlockProps) {
   if (typeof props.children === "string") {
-    console.log("here");
     return <CodeBlockInner {...(props as CodeBlockProps)} />;
   }
 

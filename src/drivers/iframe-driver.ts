@@ -1,7 +1,7 @@
 "use client";
 import { DatabaseResultSet, DriverFlags } from "./base-driver";
-import MySQLLikeDriver from "./mysql/mysql-driver";
-import PostgresLikeDriver from "./postgres/postgres-driver";
+// import MySQLLikeDriver from "./mysql/mysql-driver";
+// import PostgresLikeDriver from "./postgres/postgres-driver";
 import { SqliteLikeBaseDriver } from "./sqlite-base-driver";
 
 type ParentResponseData =
@@ -29,10 +29,6 @@ class IframeConnection {
 
   listen() {
     const handler = (e: MessageEvent<ParentResponseData>) => {
-      // Make no sense to handle message with no matching id
-      // This throw a lot of error in console for some reason
-      if (!this.queryPromise[e.data.id]) return;
-
       if (e.data.error) {
         this.queryPromise[e.data.id].reject(e.data.error);
         delete this.queryPromise[e.data.id];
@@ -141,57 +137,57 @@ export class IframeSQLiteDriver extends SqliteLikeBaseDriver {
   }
 }
 
-export class IframeMySQLDriver extends MySQLLikeDriver {
-  protected conn =
-    typeof window !== "undefined" && window?.outerbaseIpc
-      ? new ElectronConnection()
-      : new IframeConnection();
+// export class IframeMySQLDriver extends MySQLLikeDriver {
+//   protected conn =
+//     typeof window !== "undefined" && window?.outerbaseIpc
+//       ? new ElectronConnection()
+//       : new IframeConnection();
 
-  listen() {
-    this.conn.listen();
-  }
+//   listen() {
+//     this.conn.listen();
+//   }
 
-  close(): void { }
+//   close(): void { }
 
-  async query(stmt: string): Promise<DatabaseResultSet> {
-    const r = await this.conn.query(stmt);
-    return r;
-  }
+//   async query(stmt: string): Promise<DatabaseResultSet> {
+//     const r = await this.conn.query(stmt);
+//     return r;
+//   }
 
-  transaction(stmts: string[]): Promise<DatabaseResultSet[]> {
-    const r = this.conn.transaction(stmts);
-    return r;
-  }
-}
+//   transaction(stmts: string[]): Promise<DatabaseResultSet[]> {
+//     const r = this.conn.transaction(stmts);
+//     return r;
+//   }
+// }
 
-export class IframeDoltDriver extends IframeMySQLDriver {
-  getFlags(): DriverFlags {
-    return {
-      ...super.getFlags(),
-      dialect: "dolt",
-    };
-  }
-}
+// export class IframeDoltDriver extends IframeMySQLDriver {
+//   getFlags(): DriverFlags {
+//     return {
+//       ...super.getFlags(),
+//       dialect: "dolt",
+//     };
+//   }
+// }
 
-export class IframePostgresDriver extends PostgresLikeDriver {
-  protected conn =
-    typeof window !== "undefined" && window?.outerbaseIpc
-      ? new ElectronConnection()
-      : new IframeConnection();
+// export class IframePostgresDriver extends PostgresLikeDriver {
+//   protected conn =
+//     typeof window !== "undefined" && window?.outerbaseIpc
+//       ? new ElectronConnection()
+//       : new IframeConnection();
 
-  listen() {
-    this.conn.listen();
-  }
+//   listen() {
+//     this.conn.listen();
+//   }
 
-  close(): void { }
+//   close(): void { }
 
-  async query(stmt: string): Promise<DatabaseResultSet> {
-    const r = await this.conn.query(stmt);
-    return r;
-  }
+//   async query(stmt: string): Promise<DatabaseResultSet> {
+//     const r = await this.conn.query(stmt);
+//     return r;
+//   }
 
-  transaction(stmts: string[]): Promise<DatabaseResultSet[]> {
-    const r = this.conn.transaction(stmts);
-    return r;
-  }
-}
+//   transaction(stmts: string[]): Promise<DatabaseResultSet[]> {
+//     const r = this.conn.transaction(stmts);
+//     return r;
+//   }
+// }

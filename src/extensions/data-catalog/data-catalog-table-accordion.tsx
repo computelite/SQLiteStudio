@@ -1,4 +1,4 @@
-import { Button } from "@/components/orbit/button";
+import { Button } from "@/components/ui/button";
 import {
   Collapsible,
   CollapsibleContent,
@@ -14,18 +14,17 @@ import {
 } from "@/components/ui/dropdown-menu";
 import { DatabaseTableSchema } from "@/drivers/base-driver";
 import { cn } from "@/lib/utils";
-import { Blend, ChevronDown, Edit3, LucideMoreHorizontal } from "lucide-react";
-import { useMemo, useState } from "react";
+import { ChevronDown, Edit3, EyeOff, LucideMoreHorizontal } from "lucide-react";
+import { useCallback, useMemo, useState } from "react";
 import DataCatalogTableColumn from "./data-catalog-table-column";
-import { useDataCatalogContext } from "./data-model-tab";
-import DataCatalogDriver from "./driver";
-import TableMetadataModal from "./table-metadata-modal";
-import VirtualJoinColumn from "./virtual-column";
-import { virtualJoinDialog } from "./virtual-join-modal";
+import DataCatalogDriver, { VirtualJoinColumn } from "./driver";
+import VirtaulJoinColumn from "./virtual-column";
+import VirtualJoinModal from "./virtual-join-modal";
 
 interface DataCatalogTableAccordionProps {
   table: DatabaseTableSchema;
   driver: DataCatalogDriver;
+  search?: string;
   columnName?: string;
   hasDefinitionOnly?: boolean;
 }
@@ -33,16 +32,45 @@ interface DataCatalogTableAccordionProps {
 export default function DataCatalogTableAccordion({
   table,
   driver,
+  search,
   hasDefinitionOnly,
 }: DataCatalogTableAccordionProps) {
   const modelTable = driver.getTable(table.schemaName, table.tableName!);
-  const virtualJoinList = modelTable?.relations ?? [];
+  const [open, setOpen] = useState(true);
+  const [virtaulJoinColumn, setVirtualColumn] = useState<VirtualJoinColumn>();
+  const [openVirtualModal, setOpenVirtaulModal] = useState(false);
 
-  const [collapsible, setCollapsible] = useState(false);
-  const { search } = useDataCatalogContext();
-  const [open, setOpen] = useState(false);
+  const [definition, setDefinition] = useState(modelTable?.definition || "");
 
-  const tableMetadata = modelTable?.metadata;
+  const onUpdateTable = useCallback(() => {
+    if (
+      definition &&
+      definition.trim() &&
+      definition !== modelTable?.definition
+    ) {
+      driver.updateTable(table?.schemaName, table.tableName!, {
+        ...modelTable,
+        definition,
+      });
+    }
+  }, [driver, table, definition, modelTable]);
+
+  const onDeletRelationship = useCallback(
+    (id: string) => {
+      const newVirtualJoinColumn = modelTable?.virtualJoin?.filter(
+        (col) => col.id !== id
+      );
+      driver
+        .updateTable(table?.schemaName, table.tableName!, {
+          ...modelTable,
+          virtualJoin: newVirtualJoinColumn,
+        })
+        .then(() => {
+          console.log("deleted sucessful");
+        });
+    },
+    [driver, modelTable, table]
+  );
 
   // Check if any of the column match?
   const matchColumns = useMemo(() => {
@@ -70,9 +98,10 @@ export default function DataCatalogTableAccordion({
           table.tableName!,
           col.name
         );
-        return modelColumn?.definition;
+        return !!modelColumn?.definition;
       })
       .filter(Boolean);
+
     if (columnsDefinition.length === 0) {
       return null;
     }
@@ -84,58 +113,48 @@ export default function DataCatalogTableAccordion({
 
   return (
     <>
-      <Dialog open={open} onOpenChange={setOpen}>
+      <Dialog open={openVirtualModal} onOpenChange={setOpenVirtaulModal}>
         <DialogContent>
-          {open && (
-            <TableMetadataModal
-              schemaName={table.schemaName}
-              tableName={table.tableName!}
-              data={tableMetadata}
-              onClose={() => {
-                setOpen(false);
-              }}
-            />
-          )}
+          <VirtualJoinModal
+            driver={driver}
+            column={virtaulJoinColumn}
+            tableName={table.tableName!}
+            schemaName={table.schemaName}
+            onClose={() => {
+              setOpenVirtaulModal(false);
+              setVirtualColumn(undefined);
+            }}
+          />
         </DialogContent>
       </Dialog>
 
-      <Collapsible open={collapsible} onOpenChange={setCollapsible}>
+      <Collapsible open={open} onOpenChange={setOpen}>
         <div className="rounded-xl border border-neutral-200 bg-white/50 p-3 hover:border-neutral-300 hover:bg-white dark:border-neutral-800/50 dark:bg-neutral-900 dark:text-white dark:hover:border-neutral-800 dark:hover:bg-neutral-800">
           <div className="flex p-2">
             <div>
-              <div className="font-bold">
-                {tableMetadata ? tableMetadata.alias : table.tableName}
-              </div>
-
-              {tableMetadata && (
-                <div className="mt-2 mb-2">
-                  {tableMetadata.alias !== table.tableName && (
-                    <div className="text-sm font-medium text-neutral-500">
-                      The table formerly known as{" "}
-                      <span className="text-white italic">
-                        {table.tableName}
-                      </span>
-                    </div>
-                  )}
-                  {tableMetadata?.definition && (
-                    <div className="mt-2 text-base font-semibold">
-                      {tableMetadata?.definition}
-                    </div>
-                  )}
-                </div>
-              )}
+              <div className="font-bold">{table.tableName}</div>
+              <input
+                value={definition}
+                placeholder="No description"
+                onBlur={onUpdateTable}
+                onChange={(e) => {
+                  e.preventDefault();
+                  setDefinition(e.currentTarget.value);
+                }}
+                className="h-[30px] w-[150px] p-0 text-[13px] focus-visible:outline-none"
+              />
             </div>
             <CollapsibleTrigger className="flex-1" />
             <div className="flex items-center gap-2">
               <DropdownMenu>
                 <DropdownMenuTrigger asChild>
-                  <Button size="base" variant="ghost">
+                  <Button size="icon" variant="ghost">
                     <LucideMoreHorizontal className="h-4 w-4" />
                   </Button>
                 </DropdownMenuTrigger>
                 <DropdownMenuContent align="end" className="p-2">
                   <DropdownMenuItem
-                    className="gap-1"
+                    className="gap-5"
                     onClick={() => {
                       setOpen(true);
                     }}
@@ -146,24 +165,12 @@ export default function DataCatalogTableAccordion({
                   </DropdownMenuItem>
                   <DropdownMenuSeparator />
                   <DropdownMenuItem
-                    onClick={() => {
-                      virtualJoinDialog.show({
-                        driver,
-                        relation: {
-                          schemaName: table.schemaName,
-                          tableName: table.tableName || "",
-                          referenceTableName: "",
-                          referenceColumnName: "",
-                          columnName: "",
-                          hide: false,
-                        },
-                      });
-                    }}
-                    className="gap-1"
+                    onClick={() => setOpenVirtaulModal(true)}
+                    className="gap-5"
                   >
                     Add Virtaul Join
                     <div className="flex-1" />
-                    <Blend className="h-4 w-4" />
+                    <EyeOff className="h-4 w-4" />
                   </DropdownMenuItem>
                 </DropdownMenuContent>
               </DropdownMenu>
@@ -171,7 +178,7 @@ export default function DataCatalogTableAccordion({
                 <ChevronDown
                   className={cn(
                     "h-4 w-4 transform transition-transform duration-200",
-                    collapsible ? "rotate-180" : "rotate-0"
+                    open ? "rotate-180" : "rotate-0"
                   )}
                 />
               </CollapsibleTrigger>
@@ -182,18 +189,34 @@ export default function DataCatalogTableAccordion({
               return (
                 <DataCatalogTableColumn
                   key={column.name}
-                  column={column}
                   table={table}
+                  column={column}
+                  driver={driver}
+                  search={search}
                   hasDefinitionOnly={hasDefinitionOnly}
                 />
               );
             })}
-            {virtualJoinList.length > 0 && (
+            {modelTable?.virtualJoin && modelTable.virtualJoin.length > 0 && (
               <div className="rounded-xl border border-neutral-200 p-3 hover:bg-white dark:border-neutral-800/50 dark:bg-neutral-950 dark:text-white">
-                <div className="p-3 font-bold">Relationships</div>
-                {virtualJoinList.map((column) => {
-                  return <VirtualJoinColumn data={column} key={column.id} />;
-                })}
+                <div className="p-3 font-bold">Relationship</div>
+                <div className="">
+                  {modelTable.virtualJoin?.map((column) => {
+                    return (
+                      <VirtaulJoinColumn
+                        key={column.id}
+                        {...column}
+                        onEditRelationship={() => {
+                          setOpenVirtaulModal(true);
+                          setVirtualColumn(column);
+                        }}
+                        onDeletRelatinship={() => {
+                          onDeletRelationship(column.id);
+                        }}
+                      />
+                    );
+                  })}
+                </div>
               </div>
             )}
           </CollapsibleContent>

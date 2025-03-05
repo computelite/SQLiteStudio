@@ -19,7 +19,6 @@ export type SingleValueFormat =
   | "yen";
 
 interface ChartOptions {
-  backgroundImage?: string;
   foreground?: string;
   gradientStop?: string;
   gradientStart?: string;
@@ -29,7 +28,7 @@ interface ChartOptions {
   legend?: ChartLegend;
   xAxisLabel?: string;
   yAxisLabel?: string;
-  xAxisKey?: string;
+  xAxisKey: string;
   yAxisKeys: string[];
   yAxisKeyColors?: Record<string, string>;
   xAxisLabelDisplay?: ChartLabelDisplayX;
@@ -42,31 +41,32 @@ interface ChartOptions {
   theme?: string;
 }
 
-export interface ChartParams {
-  id?: string;
-  name?: string;
-  type?: ChartType;
-  model?: string;
-  apiKey?: string;
+interface ChartParams {
+  id: string;
+  name: string;
+  type: ChartType;
+  model: string;
+  apiKey: string;
   layers: ChartLayer[];
   options: ChartOptions;
-  source_id?: string;
-  created_at?: string;
-  updated_at?: string;
-  workspace_id?: string;
-  connection_id?: string | null;
+  source_id: string;
+  created_at: string;
+  updated_at: string;
+  workspace_id: string;
+  connection_id: string | null;
 }
 
 export interface ChartValue {
-  connection_id?: string | null;
-  id?: string;
-  model?: string;
-  name?: string;
+  connection_id: string | null;
+  created_at: string;
+  id: string;
+  model: string;
+  name: string;
   params: ChartParams;
-  source_id?: string;
-  type?: ChartType;
-  suggestedChartType?: ChartType[];
-  workspace_id?: string;
+  source_id: string;
+  type: ChartType;
+  updated_at: string;
+  workspace_id: string;
   description?: string;
 }
 
@@ -174,6 +174,3 @@ export const THEMES: Record<
     },
   },
 };
-
-export const outerBaseUrl = "https://app.outerbase.com";
-export const DEFAULT_THEME = "afterburn";

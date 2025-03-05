@@ -1,10 +1,9 @@
 "use client";
-import { cn } from "@/lib/utils";
 import * as echarts from "echarts";
 import { EChartsOption } from "echarts";
 import { useTheme } from "next-themes";
 import { useEffect, useRef } from "react";
-import { ChartData, ChartValue, outerBaseUrl } from "./chart-type";
+import { ChartData, ChartValue } from "./chart-type";
 import EchartOptionsBuilder from "./echart-options-builder";
 
 interface OuterbaseChartProps {
@@ -53,8 +52,9 @@ const TextComponent = ({ value }: OuterbaseChartProps) => {
 
 const SingleValueComponent = ({ value, data }: OuterbaseChartProps) => {
   const firstRecord = data.length > 0 ? data[0] : null;
-  const keys = Object.keys(firstRecord ?? {});
-  let firstRecordValue = firstRecord ? firstRecord[keys[0] ?? ""] : "";
+  let firstRecordValue = firstRecord
+    ? firstRecord[value.params.options.xAxisKey ?? ""]
+    : "";
   const formattedValue = value.params.options?.format;
 
   if (formattedValue === "percent") {
@@ -124,12 +124,11 @@ const SingleValueComponent = ({ value, data }: OuterbaseChartProps) => {
 };
 
 const TableComponent = ({ data }: OuterbaseChartProps) => {
-  if (data?.length === 0) return;
   return (
-    <div className="h-full w-full overflow-hidden overflow-x-auto overflow-y-auto rounded border">
-      <table className="border-separate border-spacing-0 text-sm">
-        <thead>
-          <tr className="bg-secondary sticky top-0 h-[35px] text-xs">
+    <div className="w-full overflow-auto rounded border">
+      <table className="w-full border-separate border-spacing-0 text-sm">
+        <thead className="sticky top-0">
+          <tr className="bg-secondary h-[35px] text-xs">
             {Object.keys(data[0]).map((key) => (
               <th key={key} className="border-r px-2 text-left">
                 {key}
@@ -141,7 +140,7 @@ const TableComponent = ({ data }: OuterbaseChartProps) => {
           {data.map((row, index) => (
             <tr key={index}>
               {Object.keys(row).map((key) => (
-                <td className="border px-4 py-2" key={key}>
+                <td className="border-t border-r px-4 py-2" key={key}>
                   {row[key] || ""}
                 </td>
               ))}
@@ -167,18 +166,16 @@ const ChartComponent = ({ value, data }: OuterbaseChartProps) => {
       chartBuilderRef.current = new EchartOptionsBuilder(value, data);
     } else {
       chartBuilderRef.current.setChartValue(value);
-      chartBuilderRef.current.setChartData(data);
     }
 
     if (domRef.current) {
       const currentDomRef = domRef.current;
       const chartInstance =
         echarts.getInstanceByDom(currentDomRef) || echarts.init(currentDomRef);
+      // chartInstance.clear();
 
       const chartBuilder = chartBuilderRef.current;
       chartBuilder.setTheme((forcedTheme ?? resolvedTheme) as "light" | "dark");
-
-      chartInstance.setOption(chartBuilder.getChartOptions(), true);
 
       // handle resize event
       const resizeObserver = new ResizeObserver((entries) => {
@@ -188,15 +185,13 @@ const ChartComponent = ({ value, data }: OuterbaseChartProps) => {
               const { width, height } = entry.contentRect;
               chartBuilder.chartHeight = height;
               chartBuilder.chartWidth = width;
-
               chartInstance.resize();
-
               if (timerRef.current) {
                 clearTimeout(timerRef.current);
               }
 
               timerRef.current = setTimeout(() => {
-                chartInstance.setOption(chartBuilder.getChartOptions(), true);
+                chartInstance.setOption(chartBuilder.getChartOptions());
               }, 200);
 
               break;
@@ -231,39 +226,11 @@ function ChartBody({ value, data, modifier }: OuterbaseChartProps) {
 }
 
 export default function Chart(props: OuterbaseChartProps) {
-  let backGroundStyle = {};
-
-  if (props.value.params.options?.backgroundType === "gradient") {
-    const startColor = props.value.params.options?.gradientStart;
-    const stopColor = props.value.params.options?.gradientStop;
-    backGroundStyle = {
-      background: `linear-gradient(45deg, ${startColor}, ${stopColor})`,
-    };
-  } else if (props.value.params.options?.backgroundType === "image") {
-    backGroundStyle = {
-      backgroundImage: `url(${outerBaseUrl + props.value.params.options?.backgroundImage})`,
-      backgroundSize: "cover",
-      backgroundPosition: "center",
-    };
-  }
-
   return (
-    <div className="flex h-full w-full flex-1 p-6" style={backGroundStyle}>
-      <div
-        className={cn("flex h-full w-full flex-col rounded-lg p-2", {
-          "dark:shadow-accent shadow-2xl backdrop-blur-lg backdrop-brightness-100 dark:backdrop-brightness-100":
-            props.value.params.options?.backgroundType === "image",
-        })}
-      >
-        <h1
-          className="mb-4 text-lg font-semibold"
-          style={{ color: props.value.params.options?.foreground }}
-        >
-          {props.value.name ?? "New Chart"}
-        </h1>
-        <div className="flex-1 overflow-hidden">
-          <ChartBody {...props} />
-        </div>
+    <div className="flex h-full w-full flex-col p-6">
+      <h1 className="mb-4 text-lg font-semibold">{props.value.name}</h1>
+      <div className="flex-1">
+        <ChartBody {...props} />
       </div>
     </div>
   );

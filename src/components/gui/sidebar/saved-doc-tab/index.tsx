@@ -1,38 +1,37 @@
-import { useDatabaseDriver } from "@/context/driver-provider";
-import {
-  SavedDocData,
-  SavedDocGroupByNamespace,
-  SavedDocNamespace,
-} from "@/drivers/saved-doc/saved-doc-driver";
 import { ListView, ListViewItem } from "@/components/listview";
-import { LucideTrash } from "lucide-react";
-import { useCallback, useEffect, useState } from "react";
-import RenameNamespaceDialog from "./rename-namespace-dialog";
-import RemoveDocDialog from "./remove-doc-dialog";
-import { TAB_PREFIX_SAVED_QUERY } from "@/const";
-import RemoveNamespaceDialog from "./remove-namespace-dialog";
-import { cn } from "@/lib/utils";
 import { buttonVariants } from "@/components/ui/button";
-import { Binoculars, Folder, Plus } from "@phosphor-icons/react";
 import {
   DropdownMenu,
   DropdownMenuContent,
   DropdownMenuItem,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
-import CreateNamespaceDialog from "./create-namespace-button";
-import { scc } from "@/core/command";
+import { TAB_PREFIX_SAVED_QUERY } from "@/const";
+import { useDatabaseDriver } from "@/context/driver-provider";
 import { OpenContextMenuList } from "@/core/channel-builtin";
+import { scc } from "@/core/command";
+import {
+  SavedDocData,
+  SavedDocGroupByNamespace,
+  SavedDocNamespace,
+} from "@/drivers/saved-doc/saved-doc-driver";
+import { cn } from "@/lib/utils";
+import { Binoculars, Folder, Plus } from "@phosphor-icons/react";
+import { LucideTrash } from "lucide-react";
+import { useCallback, useEffect, useState } from "react";
+import CreateNamespaceDialog from "./create-namespace-button";
+import RemoveDocDialog from "./remove-doc-dialog";
+import RemoveNamespaceDialog from "./remove-namespace-dialog";
 
 type SavedDocListData =
   | {
-      type: "namespace";
-      data: SavedDocNamespace;
-    }
+    type: "namespace";
+    data: SavedDocNamespace;
+  }
   | {
-      type: "doc";
-      data: SavedDocData;
-    };
+    type: "doc";
+    data: SavedDocData;
+  };
 
 function mapDoc(
   data: SavedDocGroupByNamespace[]
@@ -61,8 +60,8 @@ export default function SavedDocTab() {
   const [collapsed, setCollapsed] = useState<Set<string>>(new Set());
 
   const [namespaceCreating, setNamespaceCreating] = useState(false);
-  const [namespaceToRename, setNamespaceToRename] =
-    useState<SavedDocNamespace>();
+  // const [namespaceToRename, setNamespaceToRename] =
+  //   useState<SavedDocNamespace>();
   const [namespaceToRemove, setNamespaceToRemove] =
     useState<SavedDocNamespace>();
   const [docToRemove, setDocToRemove] = useState<SavedDocData | undefined>();
@@ -110,22 +109,22 @@ export default function SavedDocTab() {
     );
   }
 
-  if (namespaceToRename) {
-    dialog = (
-      <RenameNamespaceDialog
-        onClose={() => setNamespaceToRename(undefined)}
-        onComplete={() => {
-          if (docDriver) {
-            docDriver
-              .getDocs()
-              .then((r) => setDocList(mapDoc(r)))
-              .catch(console.error);
-          }
-        }}
-        value={namespaceToRename}
-      />
-    );
-  }
+  // if (namespaceToRename) {
+  //   dialog = (
+  //     <RenameNamespaceDialog
+  //       onClose={() => setNamespaceToRename(undefined)}
+  //       onComplete={() => {
+  //         if (docDriver) {
+  //           docDriver
+  //             .getDocs()
+  //             .then((r) => setDocList(mapDoc(r)))
+  //             .catch(console.error);
+  //         }
+  //       }}
+  //       value={namespaceToRename}
+  //     />
+  //   );
+  // }
 
   if (namespaceToRemove) {
     dialog = (
@@ -214,9 +213,9 @@ export default function SavedDocTab() {
                 {
                   title: "Rename",
                   disabled: !item,
-                  onClick: () => {
-                    if (item) setNamespaceToRename(item.data.data);
-                  },
+                  // onClick: () => {
+                  //   if (item) setNamespaceToRename(item.data.data);
+                  // },
                 },
                 {
                   title: "Remove",
