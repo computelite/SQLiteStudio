@@ -111,7 +111,7 @@ export default function PlaygroundEditorBody() {
   const onReady = useCallback(() => {
     window
       .initSqlJs({
-        locateFile: (file) => `/sqljs/${file}`,
+        locateFile: (file) => `/SQLiteStudio/sqljs/${file}`,
       })
       .then(setSqlInit);
   }, []);
@@ -305,7 +305,7 @@ export default function PlaygroundEditorBody() {
 
   return (
     <>
-      <Script src="/sqljs/sql-wasm.js" onReady={onReady} />
+      <Script src="/SQLiteStudio/sqljs/sql-wasm.js" onReady={onReady} />
       {/* <ScreenDropZone onFileDrop={onFileDrop} /> */}
       <div className="flex h-screen w-screen flex-col">
         <div className="border-b p-1">

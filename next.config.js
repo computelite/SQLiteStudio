@@ -6,6 +6,7 @@ const pkg = require("./package.json");
 const nextConfig = {
   reactStrictMode: false,
   output: "export",
+  basePath: '/SQLiteStudio',
   pageExtensions: ["js", "jsx", "mdx", "ts", "tsx"],
   env: {
     NEXT_PUBLIC_STUDIO_VERSION: pkg.version,
